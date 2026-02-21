@@ -3,6 +3,7 @@ package com.frootsnoops.brickognize.ui.results
 import app.cash.turbine.test
 import android.content.Context
 import coil.ImageLoader
+import com.frootsnoops.brickognize.data.repository.BinLocationRepository
 import com.frootsnoops.brickognize.domain.model.BinLocation
 import com.frootsnoops.brickognize.domain.model.BrickItem
 import com.frootsnoops.brickognize.domain.model.RecognitionResult
@@ -34,6 +35,7 @@ class ResultsViewModelTest {
     private lateinit var viewModel: ResultsViewModel
     private lateinit var assignBinToPartUseCase: AssignBinToPartUseCase
     private lateinit var getAllBinLocationsUseCase: GetAllBinLocationsUseCase
+    private lateinit var binLocationRepository: BinLocationRepository
     private lateinit var getPartByIdUseCase: GetPartByIdUseCase
     private lateinit var submitFeedbackUseCase: SubmitFeedbackUseCase
     private val testDispatcher = StandardTestDispatcher()
@@ -51,16 +53,24 @@ class ResultsViewModelTest {
         imageLoader = mockk(relaxed = true)
         assignBinToPartUseCase = mockk()
         getAllBinLocationsUseCase = mockk()
+        binLocationRepository = mockk()
         getPartByIdUseCase = mockk()
         submitFeedbackUseCase = mockk(relaxed = true)
 
         every { getAllBinLocationsUseCase() } returns flowOf(listOf(testBin1, testBin2))
+        every { binLocationRepository.getBinLatestPartUpdatesFlow() } returns flowOf(
+            mapOf(
+                testBin1.id to testBin1.createdAt,
+                testBin2.id to testBin2.createdAt
+            )
+        )
 
         viewModel = ResultsViewModel(
             appContext = appContext,
             imageLoader = imageLoader,
             assignBinToPartUseCase = assignBinToPartUseCase,
             getAllBinLocationsUseCase = getAllBinLocationsUseCase,
+            binLocationRepository = binLocationRepository,
             getPartByIdUseCase = getPartByIdUseCase,
             submitFeedbackUseCase = submitFeedbackUseCase,
             appPreferencesRepository = mockk(relaxed = true),
@@ -82,6 +92,7 @@ class ResultsViewModelTest {
             val state = awaitItem()
             assertThat(state.recognitionResult).isNull()
             assertThat(state.availableBins).containsExactly(testBin1, testBin2)
+            assertThat(state.binLastModifiedAt.keys).containsExactly(testBin1.id, testBin2.id)
             assertThat(state.showBinPicker).isFalse()
             assertThat(state.isAssigningBin).isFalse()
         }

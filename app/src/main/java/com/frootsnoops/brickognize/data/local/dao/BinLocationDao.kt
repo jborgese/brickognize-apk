@@ -35,4 +35,21 @@ interface BinLocationDao {
     
     @Query("SELECT COUNT(*) FROM parts WHERE bin_location_id = :binLocationId")
     suspend fun getPartCountForBin(binLocationId: Long): Int
+
+    @Query(
+        """
+        SELECT 
+            b.id AS binId,
+            COALESCE(MAX(p.updated_at), 0) AS latestPartUpdatedAt
+        FROM bin_locations b
+        LEFT JOIN parts p ON p.bin_location_id = b.id
+        GROUP BY b.id
+        """
+    )
+    fun getBinLatestPartUpdatesFlow(): Flow<List<BinLatestPartUpdate>>
 }
+
+data class BinLatestPartUpdate(
+    val binId: Long,
+    val latestPartUpdatedAt: Long
+)

@@ -2,15 +2,18 @@ package com.frootsnoops.brickognize.ui.results
 
 import android.content.Context
 import coil.ImageLoader
+import com.frootsnoops.brickognize.data.repository.BinLocationRepository
 import com.frootsnoops.brickognize.data.remote.dto.FeedbackResponseDto
 import com.frootsnoops.brickognize.domain.model.BrickItem
 import com.frootsnoops.brickognize.domain.model.RecognitionResult
 import com.frootsnoops.brickognize.domain.model.Result
+import com.frootsnoops.brickognize.domain.usecase.GetAllBinLocationsUseCase
 import com.frootsnoops.brickognize.domain.usecase.SubmitFeedbackUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -46,6 +49,10 @@ class ResultsViewModelFeedbackTest {
     @DisplayName("Submitting feedback success does not set error")
     fun `submit feedback success`() = runTest(dispatcher) {
         val submitFeedbackUseCase = mockk<SubmitFeedbackUseCase>()
+        val getAllBinLocationsUseCase = mockk<GetAllBinLocationsUseCase>()
+        val binLocationRepository = mockk<BinLocationRepository>()
+        io.mockk.every { getAllBinLocationsUseCase() } returns flowOf(emptyList())
+        io.mockk.every { binLocationRepository.getBinLatestPartUpdatesFlow() } returns flowOf(emptyMap())
         coEvery { submitFeedbackUseCase(any(), any(), any(), any(), any(), any()) } returns Result.Success(
             FeedbackResponseDto(status = "ok", message = null)
         )
@@ -53,7 +60,8 @@ class ResultsViewModelFeedbackTest {
             appContext = appContext,
             imageLoader = imageLoader,
             assignBinToPartUseCase = mockk(relaxed = true),
-            getAllBinLocationsUseCase = mockk(relaxed = true),
+            getAllBinLocationsUseCase = getAllBinLocationsUseCase,
+            binLocationRepository = binLocationRepository,
             getPartByIdUseCase = mockk(relaxed = true),
             submitFeedbackUseCase = submitFeedbackUseCase,
             appPreferencesRepository = mockk(relaxed = true),
@@ -71,12 +79,17 @@ class ResultsViewModelFeedbackTest {
     @DisplayName("Submitting feedback error sets error state")
     fun `submit feedback error sets error`() = runTest(dispatcher) {
         val submitFeedbackUseCase = mockk<SubmitFeedbackUseCase>()
+        val getAllBinLocationsUseCase = mockk<GetAllBinLocationsUseCase>()
+        val binLocationRepository = mockk<BinLocationRepository>()
+        io.mockk.every { getAllBinLocationsUseCase() } returns flowOf(emptyList())
+        io.mockk.every { binLocationRepository.getBinLatestPartUpdatesFlow() } returns flowOf(emptyMap())
         coEvery { submitFeedbackUseCase(any(), any(), any(), any(), any(), any()) } returns Result.Error(Exception("network"), "Failed")
         val vm = ResultsViewModel(
             appContext = appContext,
             imageLoader = imageLoader,
             assignBinToPartUseCase = mockk(relaxed = true),
-            getAllBinLocationsUseCase = mockk(relaxed = true),
+            getAllBinLocationsUseCase = getAllBinLocationsUseCase,
+            binLocationRepository = binLocationRepository,
             getPartByIdUseCase = mockk(relaxed = true),
             submitFeedbackUseCase = submitFeedbackUseCase,
             appPreferencesRepository = mockk(relaxed = true),

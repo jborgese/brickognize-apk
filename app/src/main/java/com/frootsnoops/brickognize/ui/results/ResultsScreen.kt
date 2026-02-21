@@ -147,6 +147,7 @@ fun ResultsScreen(
             if (uiState.showBinPicker) {
                 BinPickerDialog(
                     availableBins = uiState.availableBins,
+                    binLastModifiedAt = uiState.binLastModifiedAt,
                     onDismiss = { viewModel.hideBinPicker() },
                     onSelectBin = { binId -> 
                         viewModel.assignBinToPart(binId)
@@ -376,6 +377,7 @@ fun BrickItemCard(
 @Composable
 fun BinPickerDialog(
     availableBins: List<com.frootsnoops.brickognize.domain.model.BinLocation>,
+    binLastModifiedAt: Map<Long, Long>,
     onDismiss: () -> Unit,
     onSelectBin: (Long) -> Unit,
     onCreateNewBin: (String, String?) -> Unit
@@ -394,10 +396,12 @@ fun BinPickerDialog(
     }
     
     // Sort bins based on selected option
-    val sortedBins = remember(availableBins, selectedSort) {
+    val sortedBins = remember(availableBins, binLastModifiedAt, selectedSort) {
         when (selectedSort) {
             BinSortOption.ALPHABETICAL -> availableBins.sortedBy { it.label.uppercase() }
-            BinSortOption.LAST_MODIFIED -> availableBins.sortedByDescending { it.createdAt }
+            BinSortOption.LAST_MODIFIED -> availableBins.sortedByDescending { bin ->
+                binLastModifiedAt[bin.id] ?: bin.createdAt
+            }
         }
     }
     

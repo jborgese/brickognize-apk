@@ -3,6 +3,7 @@ package com.frootsnoops.brickognize.ui.results
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.frootsnoops.brickognize.data.repository.BinLocationRepository
 import com.frootsnoops.brickognize.domain.model.BinLocation
 import com.frootsnoops.brickognize.domain.model.BrickItem
 import com.frootsnoops.brickognize.domain.model.RecognitionResult
@@ -21,6 +22,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -29,6 +31,7 @@ import javax.inject.Inject
 data class ResultsUiState(
     val recognitionResult: RecognitionResult? = null,
     val availableBins: List<BinLocation> = emptyList(),
+    val binLastModifiedAt: Map<Long, Long> = emptyMap(),
     val showBinPicker: Boolean = false,
     val selectedPartId: String? = null,
     val isAssigningBin: Boolean = false,
@@ -43,6 +46,7 @@ class ResultsViewModel @Inject constructor(
     private val imageLoader: ImageLoader,
     private val assignBinToPartUseCase: AssignBinToPartUseCase,
     private val getAllBinLocationsUseCase: GetAllBinLocationsUseCase,
+    private val binLocationRepository: BinLocationRepository,
     private val getPartByIdUseCase: GetPartByIdUseCase,
     private val submitFeedbackUseCase: SubmitFeedbackUseCase,
     private val appPreferencesRepository: AppPreferencesRepository,
@@ -166,11 +170,24 @@ class ResultsViewModel @Inject constructor(
     private fun loadBinLocations() {
         Timber.d("Loading bin locations")
         viewModelScope.launch {
-            getAllBinLocationsUseCase().collect { bins ->
-                Timber.d("Loaded ${bins.size} bin locations")
-                _uiState.update { it.copy(availableBins = bins) }
+            getAllBinLocationsUseCase()
+                .combine(binLocationRepository.getBinLatestPartUpdatesFlow()) { bins, latestPartUpdates ->
+                    val binLastModifiedAt = bins.associate { bin ->
+                        val latestPartUpdate = latestPartUpdates[bin.id] ?: 0L
+                        bin.id to maxOf(bin.createdAt, latestPartUpdate)
+                    }
+                    bins to binLastModifiedAt
+                }
+                .collect { (bins, binLastModifiedAt) ->
+                    Timber.d("Loaded ${bins.size} bin locations with modification metadata")
+                    _uiState.update {
+                        it.copy(
+                            availableBins = bins,
+                            binLastModifiedAt = binLastModifiedAt
+                        )
+                    }
+                }
             }
-        }
     }
     
     private fun refreshPartBinLocation(partId: String) {

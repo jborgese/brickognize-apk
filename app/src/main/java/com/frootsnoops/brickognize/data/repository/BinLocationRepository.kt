@@ -57,6 +57,12 @@ class BinLocationRepository @Inject constructor(
     suspend fun getPartCountForBin(binLocationId: Long): Int {
         return binLocationDao.getPartCountForBin(binLocationId)
     }
+
+    fun getBinLatestPartUpdatesFlow(): Flow<Map<Long, Long>> {
+        return binLocationDao.getBinLatestPartUpdatesFlow().map { updates ->
+            updates.associate { update -> update.binId to update.latestPartUpdatedAt }
+        }
+    }
     
     private fun BinLocationEntity.toDomainModel() = BinLocation(
         id = id,

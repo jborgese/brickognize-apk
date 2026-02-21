@@ -2,6 +2,7 @@ package com.frootsnoops.brickognize.data.repository
 
 import app.cash.turbine.test
 import com.frootsnoops.brickognize.data.local.dao.BinLocationDao
+import com.frootsnoops.brickognize.data.local.dao.BinLatestPartUpdate
 import com.frootsnoops.brickognize.data.local.entity.BinLocationEntity
 import com.frootsnoops.brickognize.domain.model.BinLocation
 import com.google.common.truth.Truth.assertThat
@@ -194,6 +195,26 @@ class BinLocationRepositoryTest {
         val result = repository.getPartCountForBin(2L)
 
         assertThat(result).isEqualTo(0)
+    }
+
+    @Test
+    @DisplayName("getBinLatestPartUpdatesFlow returns mapped bin timestamps")
+    fun `getBinLatestPartUpdatesFlow returns mapped bin timestamps`() = runTest {
+        every { binLocationDao.getBinLatestPartUpdatesFlow() } returns flowOf(
+            listOf(
+                BinLatestPartUpdate(binId = 1L, latestPartUpdatedAt = 1_000L),
+                BinLatestPartUpdate(binId = 2L, latestPartUpdatedAt = 2_000L)
+            )
+        )
+
+        repository.getBinLatestPartUpdatesFlow().test {
+            val result = awaitItem()
+            assertThat(result[1L]).isEqualTo(1_000L)
+            assertThat(result[2L]).isEqualTo(2_000L)
+            awaitComplete()
+        }
+
+        verify { binLocationDao.getBinLatestPartUpdatesFlow() }
     }
 
     @Test
