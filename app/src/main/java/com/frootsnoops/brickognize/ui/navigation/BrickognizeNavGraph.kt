@@ -5,6 +5,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -55,32 +56,36 @@ fun BrickognizeNavGraph(
             )
         }
         
-        composable(Screen.Results.route) { _ ->
-            // Get the ScanViewModel from the Scan screen's backstack entry
-            val scanBackStackEntry = navController.getBackStackEntry(Screen.Scan.route)
-            val scanViewModel: ScanViewModel = hiltViewModel(scanBackStackEntry)
-            
-            // Get the recognition result from ScanViewModel
-            val scanUiState by scanViewModel.uiState.collectAsState()
-            
+        composable(Screen.Results.route) {
+            val scanBackStackEntry = navController.findBackStackEntryOrNull(Screen.Scan.route)
+            val scanViewModel = scanBackStackEntry?.let { entry ->
+                hiltViewModel<ScanViewModel>(entry)
+            }
+            val scanUiState = if (scanViewModel != null) {
+                scanViewModel.uiState.collectAsState().value
+            } else {
+                null
+            }
+
             ResultsScreen(
                 onNavigateBack = {
-                    // Reset the scan state before going back
-                    scanViewModel.resetState()
-                    navController.popBackStack()
+                    scanViewModel?.resetState()
+                    val popped = navController.popBackStack()
+                    if (!popped) {
+                        navController.navigate(Screen.Home.route) {
+                            launchSingleTop = true
+                        }
+                    }
                 },
                 onNavigateHome = {
-                    // Reset scan state and navigate to home
-                    scanViewModel.resetState()
                     navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
+                        popUpTo(Screen.Home.route) { inclusive = false }
+                        launchSingleTop = true
                     }
                 },
                 onNavigateToScan = {
-                    // Reset before returning so we do not auto-redirect back to Results
-                    // Set autoLaunchCamera flag to reopen camera directly with current recognition type
-                    scanViewModel.resetState()
-                    scanViewModel.setAutoLaunchCamera(true)
+                    scanViewModel?.resetState()
+                    scanViewModel?.setAutoLaunchCamera(true)
                     val popped = navController.popBackStack()
                     if (!popped) {
                         navController.navigate(Screen.Scan.route)
@@ -105,5 +110,13 @@ fun BrickognizeNavGraph(
                 }
             )
         }
+    }
+}
+
+private fun NavHostController.findBackStackEntryOrNull(route: String): NavBackStackEntry? {
+    return try {
+        getBackStackEntry(route)
+    } catch (_: IllegalArgumentException) {
+        null
     }
 }
