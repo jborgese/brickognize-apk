@@ -2,6 +2,7 @@ package com.frootsnoops.brickognize.ui.bins
 
 import android.content.Context
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -11,6 +12,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,6 +61,7 @@ fun BinsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val binsListState = rememberLazyListState()
     var showMenu by remember { mutableStateOf(false) }
     var selectedSort by rememberSaveable { mutableStateOf(BinListSortOption.ALPHABETICAL) }
     val sortedBins = remember(uiState.bins, uiState.binLastModifiedAt, selectedSort) {
@@ -68,6 +71,10 @@ fun BinsScreen(
                 uiState.binLastModifiedAt[binWithCount.binLocation.id] ?: binWithCount.binLocation.createdAt
             }
         }
+    }
+
+    BackHandler(enabled = uiState.selectedBin != null) {
+        viewModel.clearSelection()
     }
     
     // File picker for import
@@ -212,6 +219,7 @@ fun BinsScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(paddingValues),
+                        state = binsListState,
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
