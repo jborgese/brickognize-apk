@@ -72,6 +72,7 @@ class ResultsViewModel @Inject constructor(
     fun setRecognitionResult(result: RecognitionResult) {
         Timber.d("Setting recognition result: ${result.candidates.size} candidates")
         _uiState.update { it.copy(recognitionResult = result) }
+        syncRecognitionResultWithPersistedBins(result)
         // Prefetch candidate images to warm caches (non-blocking)
         prefetchCandidateImages(result.candidates.mapNotNull { it.imgUrl })
     }
@@ -221,6 +222,57 @@ class ResultsViewModel @Inject constructor(
                 _uiState.update { it.copy(recognitionResult = updatedResult) }
             }
         }
+    }
+
+    private fun syncRecognitionResultWithPersistedBins(seedResult: RecognitionResult) {
+        viewModelScope.launch {
+            val refreshedResult = refreshRecognitionResultBins(seedResult)
+            _uiState.update { currentState ->
+                // Avoid overwriting newer in-memory updates (e.g., recent assignment changes).
+                if (currentState.recognitionResult !== seedResult) {
+                    currentState
+                } else {
+                    currentState.copy(recognitionResult = refreshedResult)
+                }
+            }
+        }
+    }
+
+    private suspend fun refreshRecognitionResultBins(result: RecognitionResult): RecognitionResult {
+        val partIds = buildSet {
+            addAll(result.candidates.map { it.id })
+            result.topCandidate?.let { add(it.id) }
+        }
+        val latestPartsById = partIds.associateWith { partId ->
+            getPartByIdUseCase.getOnce(partId)
+        }
+
+        val refreshedCandidates = result.candidates.map { candidate ->
+            val latestPart = latestPartsById[candidate.id]
+            if (latestPart != null && latestPart.binLocation != candidate.binLocation) {
+                candidate.copy(binLocation = latestPart.binLocation)
+            } else {
+                candidate
+            }
+        }
+
+        val refreshedTopCandidate = result.topCandidate?.let { topCandidate ->
+            val latestTopPart = latestPartsById[topCandidate.id]
+            if (latestTopPart != null && latestTopPart.binLocation != topCandidate.binLocation) {
+                topCandidate.copy(binLocation = latestTopPart.binLocation)
+            } else {
+                topCandidate
+            }
+        }
+
+        if (refreshedCandidates == result.candidates && refreshedTopCandidate == result.topCandidate) {
+            return result
+        }
+
+        return result.copy(
+            candidates = refreshedCandidates,
+            topCandidate = refreshedTopCandidate
+        )
     }
 
     fun submitFeedbackForItem(item: BrickItem, isCorrect: Boolean) {

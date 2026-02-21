@@ -2,6 +2,7 @@ package com.frootsnoops.brickognize.ui.results
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -48,6 +49,11 @@ fun ResultsScreen(
     
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Keep system back behavior aligned with the app bar back action.
+    BackHandler(enabled = !uiState.showBinPicker) {
+        onNavigateBack()
+    }
     
     // Show success message when present
     LaunchedEffect(uiState.feedbackMessage) {

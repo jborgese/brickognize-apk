@@ -41,6 +41,7 @@ class ResultsViewModelTest {
     private lateinit var binLocationRepository: BinLocationRepository
     private lateinit var getPartByIdUseCase: GetPartByIdUseCase
     private lateinit var submitFeedbackUseCase: SubmitFeedbackUseCase
+    private lateinit var appPreferencesRepository: AppPreferencesRepository
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var appContext: Context
     private lateinit var imageLoader: ImageLoader
@@ -59,6 +60,7 @@ class ResultsViewModelTest {
         binLocationRepository = mockk()
         getPartByIdUseCase = mockk()
         submitFeedbackUseCase = mockk(relaxed = true)
+        appPreferencesRepository = mockk()
 
         every { getAllBinLocationsUseCase() } returns flowOf(listOf(testBin1, testBin2))
         every { binLocationRepository.getBinLatestPartUpdatesFlow() } returns flowOf(
@@ -67,6 +69,8 @@ class ResultsViewModelTest {
                 testBin2.id to testBin2.createdAt
             )
         )
+        every { appPreferencesRepository.preferences } returns flowOf(AppPreferences())
+        coEvery { getPartByIdUseCase.getOnce(any()) } returns null
 
         viewModel = ResultsViewModel(
             appContext = appContext,
@@ -76,7 +80,7 @@ class ResultsViewModelTest {
             binLocationRepository = binLocationRepository,
             getPartByIdUseCase = getPartByIdUseCase,
             submitFeedbackUseCase = submitFeedbackUseCase,
-            appPreferencesRepository = mockk(relaxed = true),
+            appPreferencesRepository = appPreferencesRepository,
             savedStateHandle = SavedStateHandle()
         )
         testDispatcher.scheduler.advanceUntilIdle()
@@ -116,6 +120,29 @@ class ResultsViewModelTest {
         viewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.recognitionResult).isEqualTo(result)
+        }
+    }
+
+    @Test
+    @DisplayName("Setting recognition result refreshes persisted bin assignments")
+    fun `setRecognitionResult refreshes bin assignment from persistence`() = runTest {
+        val partId = "part-db-refresh"
+        val inputPart = testPart.copy(id = partId, binLocation = null)
+        val persistedPart = inputPart.copy(binLocation = testBin2)
+        val result = RecognitionResult(
+            "scan-db-refresh",
+            inputPart,
+            listOf(inputPart)
+        )
+        coEvery { getPartByIdUseCase.getOnce(partId) } returns persistedPart
+
+        viewModel.setRecognitionResult(result)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertThat(state.recognitionResult?.topCandidate?.binLocation).isEqualTo(testBin2)
+            assertThat(state.recognitionResult?.candidates?.first()?.binLocation).isEqualTo(testBin2)
         }
     }
 
