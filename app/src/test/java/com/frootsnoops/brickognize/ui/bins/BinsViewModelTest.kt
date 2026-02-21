@@ -38,8 +38,12 @@ class BinsViewModelTest {
     private lateinit var deleteBinLocationUseCase: DeleteBinLocationUseCase
     private val testDispatcher = StandardTestDispatcher()
 
-    private val bin1 = BinLocation(1L, "A1", "Top shelf", System.currentTimeMillis())
-    private val bin2 = BinLocation(2L, "B2", "Bottom drawer", System.currentTimeMillis())
+    private val bin1CreatedAt = 1_000L
+    private val bin2CreatedAt = 2_000L
+    private val bin1LatestPartUpdatedAt = 3_000L
+    private val bin2LatestPartUpdatedAt = 1_500L
+    private val bin1 = BinLocation(1L, "A1", "Top shelf", bin1CreatedAt)
+    private val bin2 = BinLocation(2L, "B2", "Bottom drawer", bin2CreatedAt)
     private val part1 = BrickItem("p1", "Part 1", "part", imgUrl = "url1")
     private val part2 = BrickItem("p2", "Part 2", "part", imgUrl = "url2")
 
@@ -55,6 +59,12 @@ class BinsViewModelTest {
         deleteBinLocationUseCase = mockk(relaxed = true)
 
         every { getAllBinLocationsUseCase() } returns flowOf(listOf(bin1, bin2))
+        every { binLocationRepository.getBinLatestPartUpdatesFlow() } returns flowOf(
+            mapOf(
+                bin1.id to bin1LatestPartUpdatedAt,
+                bin2.id to bin2LatestPartUpdatedAt
+            )
+        )
         coEvery { binLocationRepository.getPartCountForBin(1L) } returns 5
         coEvery { binLocationRepository.getPartCountForBin(2L) } returns 3
 
@@ -87,6 +97,8 @@ class BinsViewModelTest {
             assertThat(state.bins[0].partCount).isEqualTo(5)
             assertThat(state.bins[1].binLocation).isEqualTo(bin2)
             assertThat(state.bins[1].partCount).isEqualTo(3)
+            assertThat(state.binLastModifiedAt[bin1.id]).isEqualTo(bin1LatestPartUpdatedAt)
+            assertThat(state.binLastModifiedAt[bin2.id]).isEqualTo(bin2CreatedAt)
         }
     }
 
@@ -237,6 +249,7 @@ class BinsViewModelTest {
         emptyViewModel.uiState.test {
             val state = awaitItem()
             assertThat(state.bins).isEmpty()
+            assertThat(state.binLastModifiedAt).isEmpty()
             assertThat(state.isLoading).isFalse()
         }
     }

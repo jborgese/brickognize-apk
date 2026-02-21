@@ -18,6 +18,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -31,6 +32,7 @@ data class BinWithCount(
 
 data class BinsUiState(
     val bins: List<BinWithCount> = emptyList(),
+    val binLastModifiedAt: Map<Long, Long> = emptyMap(),
     val selectedBin: BinLocation? = null,
     val partsInSelectedBin: List<BrickItem> = emptyList(),
     val isLoading: Boolean = false,
@@ -62,27 +64,37 @@ class BinsViewModel @Inject constructor(
         binsJob?.cancel()
         _uiState.update { it.copy(isLoading = true) }
         binsJob = viewModelScope.launch {
-            getAllBinLocationsUseCase().collect { bins ->
-                // Get part counts and preview parts for each bin
-                val binsWithCounts = bins.map { bin ->
-                    val count = binLocationRepository.getPartCountForBin(bin.id)
-                    val parts = try {
-                        // Get the first emission (current value) instead of collecting continuously
-                        getPartsByBinUseCase(bin.id).first().take(5)
-                    } catch (e: Exception) {
-                        Timber.e(e, "Failed to load preview parts for bin ${bin.id}")
-                        emptyList()
+            getAllBinLocationsUseCase()
+                .combine(binLocationRepository.getBinLatestPartUpdatesFlow()) { bins, latestPartUpdates ->
+                    val binLastModifiedAt = bins.associate { bin ->
+                        val latestPartUpdate = latestPartUpdates[bin.id] ?: 0L
+                        bin.id to maxOf(bin.createdAt, latestPartUpdate)
                     }
-                    BinWithCount(bin, count, parts)
+                    bins to binLastModifiedAt
                 }
-                
-                _uiState.update {
-                    it.copy(
-                        bins = binsWithCounts,
-                        isLoading = false
-                    )
+                .collect { (bins, binLastModifiedAt) ->
+                    // Get part counts and preview parts for each bin
+                    val binsWithCounts = bins.map { bin ->
+                        val count = binLocationRepository.getPartCountForBin(bin.id)
+                        val parts = try {
+                            // Get the first emission (current value) instead of collecting continuously
+                            getPartsByBinUseCase(bin.id).first().take(5)
+                        } catch (e: Exception) {
+                            Timber.e(e, "Failed to load preview parts for bin ${bin.id}")
+                            emptyList()
+                        }
+                        BinWithCount(bin, count, parts)
+                    }
+
+                    _uiState.update {
+                        it.copy(
+                            bins = binsWithCounts,
+                            binLastModifiedAt = binLastModifiedAt,
+                            isLoading = false
+                        )
+                    }
+                    Timber.d("Loaded ${binsWithCounts.size} bins with modification metadata")
                 }
-            }
         }
     }
     

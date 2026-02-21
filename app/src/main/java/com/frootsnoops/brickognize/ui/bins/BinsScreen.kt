@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -45,6 +46,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+enum class BinListSortOption {
+    ALPHABETICAL,
+    LAST_MODIFIED
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BinsScreen(
@@ -54,6 +60,15 @@ fun BinsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
+    var selectedSort by rememberSaveable { mutableStateOf(BinListSortOption.ALPHABETICAL) }
+    val sortedBins = remember(uiState.bins, uiState.binLastModifiedAt, selectedSort) {
+        when (selectedSort) {
+            BinListSortOption.ALPHABETICAL -> uiState.bins.sortedBy { it.binLocation.label.uppercase(Locale.getDefault()) }
+            BinListSortOption.LAST_MODIFIED -> uiState.bins.sortedByDescending { binWithCount ->
+                uiState.binLastModifiedAt[binWithCount.binLocation.id] ?: binWithCount.binLocation.createdAt
+            }
+        }
+    }
     
     // File picker for import
     val importLauncher = rememberLauncherForActivityResult(
@@ -200,7 +215,35 @@ fun BinsScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.bins) { binWithCount ->
+                        item {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = "Sort by:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    FilterChip(
+                                        selected = selectedSort == BinListSortOption.ALPHABETICAL,
+                                        onClick = { selectedSort = BinListSortOption.ALPHABETICAL },
+                                        label = { Text("Alphabetical") },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    FilterChip(
+                                        selected = selectedSort == BinListSortOption.LAST_MODIFIED,
+                                        onClick = { selectedSort = BinListSortOption.LAST_MODIFIED },
+                                        label = { Text("Last Modified") },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                HorizontalDivider()
+                            }
+                        }
+
+                        items(sortedBins) { binWithCount ->
                             BinCard(
                                 bin = binWithCount.binLocation,
                                 partCount = binWithCount.partCount,
