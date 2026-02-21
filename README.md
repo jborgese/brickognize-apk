@@ -57,37 +57,44 @@ app/src/main/java/com/frootsnoops/brickognize/
 ### Prerequisites
 
 - JDK 17 or higher
-- Android SDK with API 34 (Android 14)
+- Android SDK with API 35 (Android 15)
 - Git (optional)
 
 ### Build from Command Line
 
 1. **Clone or navigate to the project directory**:
    ```sh
-   cd /home/frootlab/Documents/brickognize_apk
+   cd <path-to-repo>
    ```
 
-2. **Make the Gradle wrapper executable** (if needed):
+2. **Build debug APK**:
    ```sh
-   chmod +x ./gradlew
-   ```
-
-3. **Build debug APK**:
-   ```sh
+   # macOS/Linux
    ./gradlew :app:assembleDebug
+
+   # Windows (PowerShell/CMD)
+   .\gradlew.bat :app:assembleDebug
    ```
    
    The APK will be generated at:
    `app/build/outputs/apk/debug/app-debug.apk`
 
-4. **Build release APK** (unsigned):
+3. **Build release APK** (unsigned):
    ```sh
+   # macOS/Linux
    ./gradlew :app:assembleRelease
+
+   # Windows (PowerShell/CMD)
+   .\gradlew.bat :app:assembleRelease
    ```
 
-5. **Install directly to connected device**:
+4. **Install directly to connected device**:
    ```sh
+   # macOS/Linux
    ./gradlew :app:installDebug
+
+   # Windows (PowerShell/CMD)
+   .\gradlew.bat :app:installDebug
    ```
 
 ### Build with VS Code

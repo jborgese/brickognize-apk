@@ -129,8 +129,10 @@ brickognize_apk/
 ### Build the App
 
 ```bash
-cd /home/frootlab/Documents/brickognize_apk
+cd <path-to-repo>
 ./gradlew :app:assembleDebug
+# Windows alternative:
+# .\gradlew.bat :app:assembleDebug
 ```
 
 **Output**: `app/build/outputs/apk/debug/app-debug.apk`
@@ -139,6 +141,8 @@ cd /home/frootlab/Documents/brickognize_apk
 
 ```bash
 ./gradlew :app:installDebug
+# Windows alternative:
+# .\gradlew.bat :app:installDebug
 ```
 
 ### Or Use the Helper Script

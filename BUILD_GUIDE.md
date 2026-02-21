@@ -5,9 +5,13 @@
 To build the APK from the command line:
 
 ```sh
-cd /home/frootlab/Documents/brickognize_apk
-chmod +x ./gradlew
+# macOS/Linux
+cd <path-to-repo>
 ./gradlew :app:assembleDebug
+
+# Windows (PowerShell/CMD)
+cd <path-to-repo>
+.\gradlew.bat :app:assembleDebug
 ```
 
 The APK will be at: `app/build/outputs/apk/debug/app-debug.apk`
@@ -15,8 +19,14 @@ The APK will be at: `app/build/outputs/apk/debug/app-debug.apk`
 To install directly to a connected device:
 
 ```sh
+# macOS/Linux
 ./gradlew :app:installDebug
+
+# Windows (PowerShell/CMD)
+.\gradlew.bat :app:installDebug
 ```
+
+Note: In this guide, replace `./gradlew` with `.\gradlew.bat` when running on Windows.
 
 ---
 

@@ -4,8 +4,13 @@
 		{
 			"label": "Build debug with cooldown changes",
 			"type": "shell",
-			"command": "./gradlew assembleDebug",
-			"args": [],
+			"command": "./gradlew",
+			"windows": {
+				"command": ".\\gradlew.bat"
+			},
+			"args": [
+				"assembleDebug"
+			],
 			"isBackground": false,
 			"problemMatcher": [
 				"$gradle"
@@ -14,8 +19,13 @@
 		{
 			"label": "Build with DataStore prefs",
 			"type": "shell",
-			"command": "./gradlew assembleDebug",
-			"args": [],
+			"command": "./gradlew",
+			"windows": {
+				"command": ".\\gradlew.bat"
+			},
+			"args": [
+				"assembleDebug"
+			],
 			"isBackground": false,
 			"problemMatcher": [
 				"$gradle"
@@ -24,8 +34,13 @@
 		{
 			"label": "Run unit tests after DataStore change",
 			"type": "shell",
-			"command": "./gradlew test",
-			"args": [],
+			"command": "./gradlew",
+			"windows": {
+				"command": ".\\gradlew.bat"
+			},
+			"args": [
+				"test"
+			],
 			"isBackground": false,
 			"problemMatcher": [
 				"$gradle"
@@ -34,8 +49,13 @@
 		{
 			"label": "Re-run unit tests after fixing constructor",
 			"type": "shell",
-			"command": "./gradlew test",
-			"args": [],
+			"command": "./gradlew",
+			"windows": {
+				"command": ".\\gradlew.bat"
+			},
+			"args": [
+				"test"
+			],
 			"isBackground": false,
 			"problemMatcher": [
 				"$gradle"
@@ -44,8 +64,13 @@
 		{
 			"label": "Run tests again",
 			"type": "shell",
-			"command": "./gradlew test",
-			"args": [],
+			"command": "./gradlew",
+			"windows": {
+				"command": ".\\gradlew.bat"
+			},
+			"args": [
+				"test"
+			],
 			"isBackground": false,
 			"problemMatcher": [
 				"$gradle"

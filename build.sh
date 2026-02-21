@@ -12,7 +12,8 @@ echo ""
 # Make sure we're in the right directory
 if [ ! -f "settings.gradle.kts" ]; then
     echo "❌ Error: Not in project root directory"
-    echo "Please run this script from /home/frootlab/Documents/brickognize_apk/"
+    echo "Please run this script from the project root directory"
+    echo "Tip: On Windows PowerShell/CMD, use .\\gradlew.bat instead of this script."
     exit 1
 fi
 
