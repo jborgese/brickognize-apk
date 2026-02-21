@@ -392,6 +392,16 @@ fun BinCard(
                         color = MaterialTheme.colorScheme.tertiary
                     )
                 }
+
+                IconButton(
+                    onClick = { showDeleteConfirm = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete bin ${bin.label}",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
             
             // Preview images of parts (limited to 5)

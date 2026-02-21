@@ -8,6 +8,8 @@ import com.frootsnoops.brickognize.domain.model.BinLocation
 import com.frootsnoops.brickognize.domain.model.BrickItem
 import com.frootsnoops.brickognize.domain.model.RecognitionResult
 import com.frootsnoops.brickognize.domain.model.Result
+import com.frootsnoops.brickognize.data.prefs.AppPreferences
+import com.frootsnoops.brickognize.data.prefs.AppPreferencesRepository
 import com.frootsnoops.brickognize.domain.usecase.AssignBinToPartUseCase
 import com.frootsnoops.brickognize.domain.usecase.GetAllBinLocationsUseCase
 import com.frootsnoops.brickognize.domain.usecase.GetPartByIdUseCase
@@ -17,6 +19,7 @@ import androidx.lifecycle.SavedStateHandle
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -287,5 +290,46 @@ class ResultsViewModelTest {
             assertThat(candidates?.get(1)?.binLocation).isNull()
             assertThat(candidates?.get(2)?.binLocation).isEqualTo(testBin2)
         }
+    }
+
+    @Test
+    @DisplayName("Deleted bin no longer appears in part bin selection")
+    fun `deleted bin is removed from availableBins`() = runTest {
+        val binsFlow = MutableStateFlow(listOf(testBin1, testBin2))
+        val latestUpdatesFlow = MutableStateFlow(
+            mapOf(
+                testBin1.id to testBin1.createdAt,
+                testBin2.id to testBin2.createdAt
+            )
+        )
+        val appPreferencesRepository = mockk<AppPreferencesRepository>()
+
+        every { getAllBinLocationsUseCase() } returns binsFlow
+        every { binLocationRepository.getBinLatestPartUpdatesFlow() } returns latestUpdatesFlow
+        every { appPreferencesRepository.preferences } returns flowOf(AppPreferences())
+
+        val deleteAwareViewModel = ResultsViewModel(
+            appContext = appContext,
+            imageLoader = imageLoader,
+            assignBinToPartUseCase = assignBinToPartUseCase,
+            getAllBinLocationsUseCase = getAllBinLocationsUseCase,
+            binLocationRepository = binLocationRepository,
+            getPartByIdUseCase = getPartByIdUseCase,
+            submitFeedbackUseCase = submitFeedbackUseCase,
+            appPreferencesRepository = appPreferencesRepository,
+            savedStateHandle = SavedStateHandle()
+        )
+
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertThat(deleteAwareViewModel.uiState.value.availableBins.map { it.id })
+            .containsExactly(testBin1.id, testBin2.id)
+
+        binsFlow.value = listOf(testBin2)
+        latestUpdatesFlow.value = mapOf(testBin2.id to testBin2.createdAt)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val updatedBins = deleteAwareViewModel.uiState.value.availableBins
+        assertThat(updatedBins.map { it.id }).containsExactly(testBin2.id)
+        assertThat(updatedBins.map { it.label }).doesNotContain(testBin1.label)
     }
 }

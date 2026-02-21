@@ -14,6 +14,7 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -252,5 +253,76 @@ class BinsViewModelTest {
             assertThat(state.binLastModifiedAt).isEmpty()
             assertThat(state.isLoading).isFalse()
         }
+    }
+
+    @Test
+    @DisplayName("Delete bin invokes use case and clears selection")
+    fun `deleteBin deletes selected bin and clears details`() = runTest {
+        every { getPartsByBinUseCase(1L) } returns flowOf(listOf(part1))
+        viewModel.selectBin(bin1)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.deleteBin(bin1)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { deleteBinLocationUseCase(bin1) }
+        val state = viewModel.uiState.value
+        assertThat(state.selectedBin).isNull()
+        assertThat(state.partsInSelectedBin).isEmpty()
+    }
+
+    @Test
+    @DisplayName("Delete bin failure surfaces error message")
+    fun `deleteBin failure updates import message`() = runTest {
+        coEvery { deleteBinLocationUseCase(bin1) } throws RuntimeException("boom")
+
+        viewModel.deleteBin(bin1)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.importMessage).isEqualTo("Failed to delete bin: boom")
+    }
+
+    @Test
+    @DisplayName("Deleted bin no longer appears in bin locations list")
+    fun `deleteBin removes bin from bins ui state when data source updates`() = runTest {
+        val binsFlow = MutableStateFlow(listOf(bin1, bin2))
+        val latestUpdatesFlow = MutableStateFlow(
+            mapOf(
+                bin1.id to bin1LatestPartUpdatedAt,
+                bin2.id to bin2LatestPartUpdatedAt
+            )
+        )
+
+        every { getAllBinLocationsUseCase() } returns binsFlow
+        every { binLocationRepository.getBinLatestPartUpdatesFlow() } returns latestUpdatesFlow
+        coEvery { binLocationRepository.getPartCountForBin(bin1.id) } returns 5
+        coEvery { binLocationRepository.getPartCountForBin(bin2.id) } returns 3
+        coEvery { deleteBinLocationUseCase(bin1) } coAnswers {
+            binsFlow.value = listOf(bin2)
+            latestUpdatesFlow.value = mapOf(bin2.id to bin2LatestPartUpdatedAt)
+            Unit
+        }
+
+        val deletingViewModel = BinsViewModel(
+            getAllBinLocationsUseCase = getAllBinLocationsUseCase,
+            getPartsByBinUseCase = getPartsByBinUseCase,
+            binLocationRepository = binLocationRepository,
+            exportBinLocationsUseCase = exportBinLocationsUseCase,
+            importBinLocationsUseCase = importBinLocationsUseCase,
+            deletePartUseCase = deletePartUseCase,
+            deleteBinLocationUseCase = deleteBinLocationUseCase
+        )
+
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertThat(deletingViewModel.uiState.value.bins.map { it.binLocation.id })
+            .containsExactly(bin1.id, bin2.id)
+
+        deletingViewModel.deleteBin(bin1)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = deletingViewModel.uiState.value
+        assertThat(state.bins.map { it.binLocation.id }).containsExactly(bin2.id)
+        assertThat(state.bins.map { it.binLocation.label }).doesNotContain(bin1.label)
     }
 }
