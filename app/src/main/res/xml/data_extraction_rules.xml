@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Configure cloud backup rules for Android 12+ -->
+        <!-- Exclude Room database from cloud backup to prevent data persistence after uninstall -->
+        <exclude domain="database" path="brick_database.db"/>
+        <exclude domain="database" path="brick_database.db-shm"/>
+        <exclude domain="database" path="brick_database.db-wal"/>
+        <!-- <include domain="sharedpref" path="."/> -->
+        <!-- <exclude domain="sharedpref" path="device_prefs.xml"/> -->
+    </cloud-backup>
+    <device-transfer>
+        <!-- Configure device transfer rules for Android 12+ -->
+        <!-- Exclude Room database from device transfer to prevent data persistence after uninstall -->
+        <exclude domain="database" path="brick_database.db"/>
+        <exclude domain="database" path="brick_database.db-shm"/>
+        <exclude domain="database" path="brick_database.db-wal"/>
+        <!-- <include domain="sharedpref" path="."/> -->
+        <!-- <exclude domain="sharedpref" path="device_prefs.xml"/> -->
+    </device-transfer>
+</data-extraction-rules>

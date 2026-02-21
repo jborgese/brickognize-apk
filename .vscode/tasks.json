@@ -1,0 +1,55 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build debug with cooldown changes",
+			"type": "shell",
+			"command": "./gradlew assembleDebug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			]
+		},
+		{
+			"label": "Build with DataStore prefs",
+			"type": "shell",
+			"command": "./gradlew assembleDebug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			]
+		},
+		{
+			"label": "Run unit tests after DataStore change",
+			"type": "shell",
+			"command": "./gradlew test",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			]
+		},
+		{
+			"label": "Re-run unit tests after fixing constructor",
+			"type": "shell",
+			"command": "./gradlew test",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			]
+		},
+		{
+			"label": "Run tests again",
+			"type": "shell",
+			"command": "./gradlew test",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			]
+		}
+	]
+}

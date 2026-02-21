@@ -1,0 +1,44 @@
+{
+    "exportedAt": 1766604030569,
+    "binLocations": [
+        {
+            "label": "A1",
+            "description": "Top shelf",
+            "createdAt": 1111
+        },
+        {
+            "label": "B2",
+            "createdAt": 2222
+        }
+    ],
+    "parts": [
+        {
+            "id": "3001",
+            "name": "Brick 2x4",
+            "type": "part",
+            "category": "Bricks",
+            "imgUrl": "https://img/3001.png",
+            "binLabel": "A1",
+            "createdAt": 1234,
+            "updatedAt": 5678
+        },
+        {
+            "id": "3023",
+            "name": "Plate 1x2",
+            "type": "part",
+            "category": "Plates",
+            "imgUrl": "https://img/3023.png",
+            "binLabel": "A1",
+            "createdAt": 2234,
+            "updatedAt": 6678
+        },
+        {
+            "id": "3002",
+            "name": "Brick 2x3",
+            "type": "part",
+            "category": "Bricks",
+            "createdAt": 3234,
+            "updatedAt": 7678
+        }
+    ]
+}

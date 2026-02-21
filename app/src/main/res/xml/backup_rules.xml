@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Exclude Room database from backup to prevent data persistence after uninstall -->
+    <exclude domain="database" path="brick_database.db"/>
+    <exclude domain="database" path="brick_database.db-shm"/>
+    <exclude domain="database" path="brick_database.db-wal"/>
+    
+    <!-- Exclude specific files or folders from backup if needed -->
+    <!-- <exclude domain="sharedpref" path="device_prefs.xml"/> -->
+</full-backup-content>
