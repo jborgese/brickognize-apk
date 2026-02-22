@@ -29,25 +29,18 @@ class DatabaseMigrationsTest {
         BrickDatabase::class.java
     )
     
-    /**
-     * Test migration from version 1 to 2
-     * 
-     * Uncomment when MIGRATION_1_2 is implemented
-     */
-    /*
     @Test
     @Throws(IOException::class)
-    fun migrate1To2_preservesBinLocationData() {
+    fun migrate1To2_preservesPartAssignments() {
         // Create v1 database with test data
         helper.createDatabase(TEST_DB, 1).apply {
-            // Insert test data
             execSQL("""
-                INSERT INTO bin_locations (label, description, created_at) 
-                VALUES ('Bin A', 'Small parts', 1000)
+                INSERT INTO bin_locations (id, label, description, created_at)
+                VALUES (1, 'Bin A', 'Small parts', 1000)
             """)
             execSQL("""
-                INSERT INTO bin_locations (label, description, created_at) 
-                VALUES ('Bin B', 'Large parts', 2000)
+                INSERT INTO parts (id, name, type, category, img_url, bin_location_id, created_at, updated_at)
+                VALUES ('3001', 'Brick 2x4', 'part', NULL, NULL, 1, 1500, 2500)
             """)
             close()
         }
@@ -60,27 +53,16 @@ class DatabaseMigrationsTest {
             DatabaseMigrations.MIGRATION_1_2
         )
         
-        // Verify data preserved
-        db.query("SELECT * FROM bin_locations ORDER BY id").use { cursor ->
-            assertThat(cursor.count).isEqualTo(2)
-            
-            // Check first bin
+        // Verify assignment migrated from parts.bin_location_id
+        db.query("SELECT part_id, bin_location_id FROM part_bin_assignments").use { cursor ->
+            assertThat(cursor.count).isEqualTo(1)
             assertThat(cursor.moveToFirst()).isTrue()
-            assertThat(cursor.getString(cursor.getColumnIndexOrThrow("label"))).isEqualTo("Bin A")
-            assertThat(cursor.getString(cursor.getColumnIndexOrThrow("description"))).isEqualTo("Small parts")
-            
-            // Verify new column exists with default value
-            val colorIndex = cursor.getColumnIndexOrThrow("color")
-            assertThat(cursor.getString(colorIndex)).isEqualTo("#2196F3")
-            
-            // Check second bin
-            assertThat(cursor.moveToNext()).isTrue()
-            assertThat(cursor.getString(cursor.getColumnIndexOrThrow("label"))).isEqualTo("Bin B")
+            assertThat(cursor.getString(cursor.getColumnIndexOrThrow("part_id"))).isEqualTo("3001")
+            assertThat(cursor.getLong(cursor.getColumnIndexOrThrow("bin_location_id"))).isEqualTo(1L)
         }
         
         db.close()
     }
-    */
     
     /**
      * Test migration from version 2 to 3
@@ -204,7 +186,7 @@ class DatabaseMigrationsTest {
     @Throws(IOException::class)
     fun createDatabaseFromScratch_success() {
         // Create database at latest version
-        helper.createDatabase(TEST_DB, 1).apply {
+        helper.createDatabase(TEST_DB, 2).apply {
             // Insert test data to verify schema
             execSQL("""
                 INSERT INTO bin_locations (label, created_at) 

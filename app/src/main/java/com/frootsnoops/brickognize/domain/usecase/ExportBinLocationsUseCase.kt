@@ -38,9 +38,15 @@ class ExportBinLocationsUseCase @Inject constructor(
                 Timber.e(e, "Failed to load parts for export")
                 emptyList()
             }
+            val partBinIds = try {
+                partRepository.getAllPartBinIds()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load part/bin assignments for export")
+                emptyMap()
+            }
             
             val exportData = BinLocationsBackup(
-                version = 2,
+                version = 3,
                 exportedAt = System.currentTimeMillis(),
                 binLocations = binLocations.map { bin ->
                     BinLocationExport(
@@ -50,13 +56,19 @@ class ExportBinLocationsUseCase @Inject constructor(
                     )
                 },
                 parts = partEntities.map { p ->
+                    val labels = partBinIds[p.id]
+                        .orEmpty()
+                        .mapNotNull { binIdToLabel[it] }
+                        .distinct()
+                        .sortedBy { it.uppercase() }
                     PartExport(
                         id = p.id,
                         name = p.name,
                         type = p.type,
                         category = p.category,
                         imgUrl = p.imgUrl,
-                        binLabel = p.binLocationId?.let { binIdToLabel[it] },
+                        binLabel = labels.firstOrNull(),
+                        binLabels = labels.ifEmpty { null },
                         createdAt = p.createdAt,
                         updatedAt = p.updatedAt
                     )

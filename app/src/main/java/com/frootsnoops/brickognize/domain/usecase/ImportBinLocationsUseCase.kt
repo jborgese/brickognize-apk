@@ -63,21 +63,37 @@ class ImportBinLocationsUseCase @Inject constructor(
             var partsImported = 0
             if (parts.isNotEmpty()) {
                 Timber.i("Importing ${parts.size} parts with assignments")
+                val assignmentsByPartId = mutableMapOf<String, List<Long>>()
                 val entities = parts.map { pe ->
-                    val binId = pe.binLabel?.let { labelToBinId[it.lowercase()] }
+                    val partBinLabels = pe.binLabels
+                        ?.takeIf { it.isNotEmpty() }
+                        ?: pe.binLabel?.let { listOf(it) }
+                        ?: emptyList()
+                    val partBinIds = partBinLabels
+                        .mapNotNull { labelToBinId[it.lowercase()] }
+                        .distinct()
+                    assignmentsByPartId[pe.id] = partBinIds
                     PartEntity(
                         id = pe.id,
                         name = pe.name,
                         type = pe.type,
                         category = pe.category,
                         imgUrl = pe.imgUrl,
-                        binLocationId = binId,
+                        binLocationId = partBinIds.firstOrNull(),
                         createdAt = pe.createdAt,
                         updatedAt = pe.updatedAt
                     )
                 }
                 try {
                     partRepository.upsertParts(entities)
+                    entities.forEach { entity ->
+                        val binIds = assignmentsByPartId[entity.id].orEmpty()
+                        partRepository.updatePartBinLocations(
+                            partId = entity.id,
+                            binLocationIds = binIds,
+                            updatedAt = entity.updatedAt
+                        )
+                    }
                     partsImported = entities.size
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to upsert parts during import")

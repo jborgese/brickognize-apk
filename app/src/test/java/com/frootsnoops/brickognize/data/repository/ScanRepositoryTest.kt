@@ -47,6 +47,7 @@ class ScanRepositoryTest {
         partDao = mockk()
         binLocationDao = mockk()
         repository = ScanRepository(scanDao, partDao, binLocationDao)
+        coEvery { partDao.getBinLocationsForPart(any()) } returns emptyList()
     }
 
     @AfterEach
@@ -64,7 +65,7 @@ class ScanRepositoryTest {
         
         every { scanDao.getRecentScansWithCandidatesFlow(50) } returns flowOf(listOf(scanWithCandidates))
         coEvery { partDao.getPartById("p1") } returns partEntity
-        coEvery { binLocationDao.getBinLocationById(1L) } returns binEntity
+        coEvery { partDao.getBinLocationsForPart("p1") } returns listOf(binEntity)
 
         repository.getScanHistoryFlow(50).test {
             val result = awaitItem()
@@ -85,7 +86,7 @@ class ScanRepositoryTest {
 
         verify { scanDao.getRecentScansWithCandidatesFlow(50) }
         coVerify { partDao.getPartById("p1") }
-        coVerify { binLocationDao.getBinLocationById(1L) }
+        coVerify { partDao.getBinLocationsForPart("p1") }
     }
 
     @Test
@@ -138,7 +139,7 @@ class ScanRepositoryTest {
 
         verify { scanDao.getRecentScansWithCandidatesFlow(50) }
         coVerify { partDao.getPartById("p1") }
-        coVerify(exactly = 0) { binLocationDao.getBinLocationById(any()) }
+        coVerify { partDao.getBinLocationsForPart("p1") }
     }
 
     @Test
@@ -218,7 +219,7 @@ class ScanRepositoryTest {
         every { scanDao.getRecentScansWithCandidatesFlow(50) } returns flowOf(listOf(scan1, scan2))
         coEvery { partDao.getPartById("p1") } returns partEntity
         coEvery { partDao.getPartById("p2") } returns part2
-        coEvery { binLocationDao.getBinLocationById(1L) } returns binEntity
+        coEvery { partDao.getBinLocationsForPart("p1") } returns listOf(binEntity)
 
         repository.getScanHistoryFlow(50).test {
             val result = awaitItem()
@@ -248,7 +249,7 @@ class ScanRepositoryTest {
         
         every { scanDao.getRecentScansWithCandidatesFlow(50) } returns flowOf(listOf(scanWithCandidates))
         coEvery { partDao.getPartById("p1") } returns partEntity
-        coEvery { binLocationDao.getBinLocationById(1L) } returns binEntity
+        coEvery { partDao.getBinLocationsForPart("p1") } returns listOf(binEntity)
 
         repository.getScanHistoryFlow(50).test {
             val result = awaitItem()

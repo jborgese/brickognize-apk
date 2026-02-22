@@ -7,5 +7,6 @@ data class BrickItem(
     val category: String? = null,
     val imgUrl: String? = null,
     val score: Double? = null,
-    val binLocation: BinLocation? = null
+    val binLocation: BinLocation? = null,
+    val binLocations: List<BinLocation> = binLocation?.let { listOf(it) } ?: emptyList()
 )

@@ -33,7 +33,7 @@ interface BinLocationDao {
     @Delete
     suspend fun deleteBinLocation(binLocation: BinLocationEntity)
     
-    @Query("SELECT COUNT(*) FROM parts WHERE bin_location_id = :binLocationId")
+    @Query("SELECT COUNT(DISTINCT part_id) FROM part_bin_assignments WHERE bin_location_id = :binLocationId")
     suspend fun getPartCountForBin(binLocationId: Long): Int
 
     @Query(
@@ -42,7 +42,8 @@ interface BinLocationDao {
             b.id AS binId,
             COALESCE(MAX(p.updated_at), 0) AS latestPartUpdatedAt
         FROM bin_locations b
-        LEFT JOIN parts p ON p.bin_location_id = b.id
+        LEFT JOIN part_bin_assignments pba ON pba.bin_location_id = b.id
+        LEFT JOIN parts p ON p.id = pba.part_id
         GROUP BY b.id
         """
     )

@@ -34,6 +34,7 @@ class ExportBinLocationsUseCaseTest {
         )
         coEvery { repository.getAllBinLocations() } returns bins
         coEvery { partRepository.getAllPartEntities() } returns emptyList()
+        coEvery { partRepository.getAllPartBinIds() } returns emptyMap()
         
         // When
         val result = useCase()
@@ -52,6 +53,7 @@ class ExportBinLocationsUseCaseTest {
         // Given
         coEvery { repository.getAllBinLocations() } returns emptyList()
         coEvery { partRepository.getAllPartEntities() } returns emptyList()
+        coEvery { partRepository.getAllPartBinIds() } returns emptyMap()
         
         // When
         val result = useCase()
@@ -67,6 +69,7 @@ class ExportBinLocationsUseCaseTest {
         // Given
         coEvery { repository.getAllBinLocations() } throws RuntimeException("DB error")
         coEvery { partRepository.getAllPartEntities() } returns emptyList()
+        coEvery { partRepository.getAllPartBinIds() } returns emptyMap()
         
         // When
         val result = useCase()

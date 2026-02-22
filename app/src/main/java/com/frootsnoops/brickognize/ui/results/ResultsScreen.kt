@@ -26,6 +26,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.frootsnoops.brickognize.R
 import com.frootsnoops.brickognize.domain.model.BrickItem
+import java.util.Locale
 
 enum class BinSortOption {
     ALPHABETICAL, LAST_MODIFIED
@@ -154,12 +155,13 @@ fun ResultsScreen(
                 BinPickerDialog(
                     availableBins = uiState.availableBins,
                     binLastModifiedAt = uiState.binLastModifiedAt,
+                    selectedBinIds = uiState.selectedBinIds,
                     onDismiss = { viewModel.hideBinPicker() },
-                    onSelectBin = { binId -> 
-                        viewModel.assignBinToPart(binId)
+                    onApplyBins = { selectedBinIds ->
+                        viewModel.assignBinsToPart(selectedBinIds)
                     },
-                    onCreateNewBin = { label, description ->
-                        viewModel.assignBinToPart(null, label, description)
+                    onCreateNewBin = { label, description, selectedBinIds ->
+                        viewModel.assignBinsToPart(selectedBinIds, label, description)
                     }
                 )
             }
@@ -186,6 +188,25 @@ fun BrickItemCard(
     cooldownUntil: Long?
 ) {
     val context = LocalContext.current
+    val assignedBins = if (item.binLocations.isNotEmpty()) {
+        item.binLocations
+    } else {
+        item.binLocation?.let { listOf(it) }.orEmpty()
+    }
+    val binSummary = when (assignedBins.size) {
+        0 -> "No bins"
+        1 -> assignedBins.first().label.uppercase(Locale.getDefault())
+        else -> {
+            val visibleLabels = assignedBins
+                .take(2)
+                .joinToString(", ") { it.label.uppercase(Locale.getDefault()) }
+            if (assignedBins.size > 2) {
+                "$visibleLabels +${assignedBins.size - 2}"
+            } else {
+                visibleLabels
+            }
+        }
+    }
     
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -267,9 +288,9 @@ fun BrickItemCard(
                         modifier = Modifier.size(32.dp)
                     )
                     Text(
-                        text = item.binLocation?.label?.uppercase() ?: "No bin",
+                        text = binSummary,
                         style = MaterialTheme.typography.titleSmall,
-                        color = if (item.binLocation != null) 
+                        color = if (assignedBins.isNotEmpty())
                             MaterialTheme.colorScheme.tertiary 
                         else 
                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -300,13 +321,13 @@ fun BrickItemCard(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     Icon(
-                        imageVector = if (item.binLocation != null) Icons.Default.Edit else Icons.Default.Add,
+                        imageVector = if (assignedBins.isNotEmpty()) Icons.Default.Edit else Icons.Default.Add,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (item.binLocation != null) "Change Bin" else "Assign Bin",
+                        text = if (assignedBins.isNotEmpty()) "Edit Bins" else "Assign Bins",
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
@@ -384,13 +405,21 @@ fun BrickItemCard(
 fun BinPickerDialog(
     availableBins: List<com.frootsnoops.brickognize.domain.model.BinLocation>,
     binLastModifiedAt: Map<Long, Long>,
+    selectedBinIds: Set<Long>,
     onDismiss: () -> Unit,
-    onSelectBin: (Long) -> Unit,
-    onCreateNewBin: (String, String?) -> Unit
+    onApplyBins: (Set<Long>) -> Unit,
+    onCreateNewBin: (String, String?, Set<Long>) -> Unit
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
     var newBinLabel by remember { mutableStateOf("") }
     var newBinDescription by remember { mutableStateOf("") }
+    var workingSelection by remember(selectedBinIds, availableBins) {
+        mutableStateOf(
+            selectedBinIds.filter { selectedId ->
+                availableBins.any { it.id == selectedId }
+            }.toSet()
+        )
+    }
     
     // Sort option states
     var selectedSort by remember { mutableStateOf(BinSortOption.LAST_MODIFIED) }
@@ -442,7 +471,8 @@ fun BinPickerDialog(
                         if (newBinLabel.isNotBlank() && !isDuplicateBin) {
                             onCreateNewBin(
                                 newBinLabel,
-                                newBinDescription.takeIf { it.isNotBlank() }
+                                newBinDescription.takeIf { it.isNotBlank() },
+                                workingSelection
                             )
                             showCreateDialog = false
                             onDismiss()
@@ -462,7 +492,7 @@ fun BinPickerDialog(
     } else {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Select Bin Location") },
+            title = { Text("Assign Bin Locations") },
             text = {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -514,28 +544,58 @@ fun BinPickerDialog(
                         item {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         }
-                        
+
+                        item {
+                            TextButton(
+                                onClick = { workingSelection = emptySet() },
+                                enabled = workingSelection.isNotEmpty()
+                            ) {
+                                Text("Clear Selection")
+                            }
+                        }
+
                         items(sortedBins) { bin ->
                             Card(
-                                onClick = { 
-                                    onSelectBin(bin.id)
-                                    onDismiss()
+                                onClick = {
+                                    workingSelection = if (workingSelection.contains(bin.id)) {
+                                        workingSelection - bin.id
+                                    } else {
+                                        workingSelection + bin.id
+                                    }
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = bin.label.uppercase(),
-                                        style = MaterialTheme.typography.titleSmall
+                                    Checkbox(
+                                        checked = workingSelection.contains(bin.id),
+                                        onCheckedChange = { checked ->
+                                            workingSelection = if (checked) {
+                                                workingSelection + bin.id
+                                            } else {
+                                                workingSelection - bin.id
+                                            }
+                                        }
                                     )
-                                    bin.description?.let { desc ->
+                                    Column(
+                                        modifier = Modifier.weight(1f)
+                                    ) {
                                         Text(
-                                            text = desc,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            text = bin.label.uppercase(Locale.getDefault()),
+                                            style = MaterialTheme.typography.titleSmall
                                         )
+                                        bin.description?.let { desc ->
+                                            Text(
+                                                text = desc,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -543,7 +603,16 @@ fun BinPickerDialog(
                     }
                 }
             },
-            confirmButton = {},
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onApplyBins(workingSelection)
+                        onDismiss()
+                    }
+                ) {
+                    Text("Apply")
+                }
+            },
             dismissButton = {
                 TextButton(onClick = onDismiss) {
                     Text("Cancel")

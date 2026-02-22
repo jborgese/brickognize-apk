@@ -10,7 +10,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.assertThrows
 
 @DisplayName("AssignBinToPartUseCase Tests")
 class AssignBinToPartUseCaseTest {
@@ -37,13 +36,27 @@ class AssignBinToPartUseCaseTest {
         val partId = "part-123"
         val binId = 1L
         
-        coEvery { partRepository.updatePartBinLocation(partId, binId) } just Runs
+        coEvery { partRepository.updatePartBinLocations(partId, listOf(binId), any()) } just Runs
 
-        val result = useCase(partId = partId, binId = binId)
+        val result = useCase(partId = partId, binIds = listOf(binId))
 
         assertThat(result).isInstanceOf(Result.Success::class.java)
-        coVerify { partRepository.updatePartBinLocation(partId, binId) }
+        coVerify { partRepository.updatePartBinLocations(partId, listOf(binId), any()) }
         coVerify(exactly = 0) { binLocationRepository.createBinLocation(any(), any()) }
+    }
+
+    @Test
+    @DisplayName("Assigning multiple bins to part succeeds")
+    fun `assign multiple bins to part succeeds`() = runTest {
+        val partId = "part-123"
+        val binIds = listOf(1L, 2L, 2L)
+
+        coEvery { partRepository.updatePartBinLocations(partId, listOf(1L, 2L), any()) } just Runs
+
+        val result = useCase(partId = partId, binIds = binIds)
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        coVerify { partRepository.updatePartBinLocations(partId, listOf(1L, 2L), any()) }
     }
 
     @Test
@@ -59,18 +72,18 @@ class AssignBinToPartUseCaseTest {
         } returns createdBinId
         coEvery { binLocationRepository.getAllBinLocations() } returns emptyList()
         
-        coEvery { partRepository.updatePartBinLocation(partId, createdBinId) } just Runs
+        coEvery { partRepository.updatePartBinLocations(partId, listOf(createdBinId), any()) } just Runs
 
         val result = useCase(
             partId = partId,
-            binId = null,
+            binIds = emptyList(),
             newBinLabel = newBinLabel,
             newBinDescription = newBinDescription
         )
 
         assertThat(result).isInstanceOf(Result.Success::class.java)
         coVerify { binLocationRepository.createBinLocation(newBinLabel, newBinDescription) }
-        coVerify { partRepository.updatePartBinLocation(partId, createdBinId) }
+        coVerify { partRepository.updatePartBinLocations(partId, listOf(createdBinId), any()) }
     }
 
     @Test
@@ -78,12 +91,12 @@ class AssignBinToPartUseCaseTest {
     fun `clear bin assignment succeeds`() = runTest {
         val partId = "part-123"
         
-        coEvery { partRepository.updatePartBinLocation(partId, null) } just Runs
+        coEvery { partRepository.updatePartBinLocations(partId, emptyList(), any()) } just Runs
 
-        val result = useCase(partId = partId, binId = null, newBinLabel = null)
+        val result = useCase(partId = partId, binIds = emptyList(), newBinLabel = null)
 
         assertThat(result).isInstanceOf(Result.Success::class.java)
-        coVerify { partRepository.updatePartBinLocation(partId, null) }
+        coVerify { partRepository.updatePartBinLocations(partId, emptyList(), any()) }
         coVerify(exactly = 0) { binLocationRepository.createBinLocation(any(), any()) }
     }
 
@@ -94,10 +107,10 @@ class AssignBinToPartUseCaseTest {
         val binId = 1L
         
         coEvery { 
-            partRepository.updatePartBinLocation(partId, binId) 
+            partRepository.updatePartBinLocations(partId, listOf(binId), any()) 
         } throws Exception("Database error")
 
-        val result = useCase(partId = partId, binId = binId)
+        val result = useCase(partId = partId, binIds = listOf(binId))
 
         assertThat(result).isInstanceOf(Result.Error::class.java)
         val errorResult = result as Result.Error
@@ -109,12 +122,12 @@ class AssignBinToPartUseCaseTest {
     fun `creating bin without label clears assignment`() = runTest {
         val partId = "part-123"
         
-        coEvery { partRepository.updatePartBinLocation(partId, null) } just Runs
+        coEvery { partRepository.updatePartBinLocations(partId, emptyList(), any()) } just Runs
 
-        val result = useCase(partId = partId, binId = null, newBinLabel = null)
+        val result = useCase(partId = partId, binIds = emptyList(), newBinLabel = null)
 
         assertThat(result).isInstanceOf(Result.Success::class.java)
-        coVerify { partRepository.updatePartBinLocation(partId, null) }
+        coVerify { partRepository.updatePartBinLocations(partId, emptyList(), any()) }
     }
 
     @Test
@@ -129,17 +142,17 @@ class AssignBinToPartUseCaseTest {
         } returns createdBinId
         coEvery { binLocationRepository.getAllBinLocations() } returns emptyList()
         
-        coEvery { partRepository.updatePartBinLocation(partId, createdBinId) } just Runs
+        coEvery { partRepository.updatePartBinLocations(partId, listOf(createdBinId), any()) } just Runs
 
         val result = useCase(
             partId = partId,
-            binId = null,
+            binIds = emptyList(),
             newBinLabel = newBinLabel,
             newBinDescription = null
         )
 
         assertThat(result).isInstanceOf(Result.Success::class.java)
         coVerify { binLocationRepository.createBinLocation(newBinLabel, null) }
-        coVerify { partRepository.updatePartBinLocation(partId, createdBinId) }
+        coVerify { partRepository.updatePartBinLocations(partId, listOf(createdBinId), any()) }
     }
 }

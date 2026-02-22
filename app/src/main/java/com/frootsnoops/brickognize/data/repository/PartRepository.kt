@@ -18,33 +18,53 @@ class PartRepository @Inject constructor(
 ) {
     suspend fun getPartById(id: String): BrickItem? {
         val part = partDao.getPartById(id) ?: return null
-        val binLocation = part.binLocationId?.let { binLocationDao.getBinLocationById(it) }
-        return part.toDomainModel(binLocation?.toDomainModel())
+        val binLocations = partDao.getBinLocationsForPart(id).map { it.toDomainModel() }
+        return part.toDomainModel(binLocations)
     }
     
     fun getPartByIdFlow(id: String): Flow<BrickItem?> {
-        return partDao.getPartByIdFlow(id).combine(
-            binLocationDao.getAllBinLocationsFlow()
-        ) { part, bins ->
-            part?.let {
-                val binLocation = bins.find { bin -> bin.id == it.binLocationId }
-                it.toDomainModel(binLocation?.toDomainModel())
-            }
+        return partDao.getPartByIdFlow(id).combine(partDao.getBinLocationsForPartFlow(id)) { part, bins ->
+            part?.toDomainModel(bins.map { it.toDomainModel() })
         }
     }
     
     fun getPartsByBinLocationFlow(binLocationId: Long): Flow<List<BrickItem>> {
-        return partDao.getPartsByBinLocationFlow(binLocationId).combine(
-            binLocationDao.getBinLocationByIdFlow(binLocationId)
-        ) { parts, binLocation ->
-            parts.map { it.toDomainModel(binLocation?.toDomainModel()) }
+        return combine(
+            partDao.getPartsByBinLocationFlow(binLocationId),
+            partDao.getAllPartBinAssignmentsFlow(),
+            binLocationDao.getAllBinLocationsFlow()
+        ) { parts, assignments, bins ->
+            val binEntitiesById = bins.associateBy { it.id }
+            val binIdsByPart = assignments
+                .groupBy { it.partId }
+                .mapValues { (_, refs) -> refs.map { it.binLocationId }.distinct() }
+            parts.map { part ->
+                val partBinLocations = binIdsByPart[part.id]
+                    .orEmpty()
+                    .mapNotNull { binId -> binEntitiesById[binId]?.toDomainModel() }
+                    .sortedBy { it.label.uppercase() }
+                part.toDomainModel(partBinLocations)
+            }
         }
     }
     
     suspend fun getPartsByBinLocation(binLocationId: Long): List<BrickItem> {
         val parts = partDao.getPartsByBinLocation(binLocationId)
-        val binLocation = binLocationDao.getBinLocationById(binLocationId)
-        return parts.map { it.toDomainModel(binLocation?.toDomainModel()) }
+        if (parts.isEmpty()) {
+            return emptyList()
+        }
+        val binEntitiesById = binLocationDao.getAllBinLocations().associateBy { it.id }
+        val binIdsByPart = partDao.getAllPartBinAssignments()
+            .groupBy { it.partId }
+            .mapValues { (_, refs) -> refs.map { it.binLocationId }.distinct() }
+
+        return parts.map { part ->
+            val partBinLocations = binIdsByPart[part.id]
+                .orEmpty()
+                .mapNotNull { binId -> binEntitiesById[binId]?.toDomainModel() }
+                .sortedBy { it.label.uppercase() }
+            part.toDomainModel(partBinLocations)
+        }
     }
     
     suspend fun upsertPart(part: PartEntity) {
@@ -56,7 +76,19 @@ class PartRepository @Inject constructor(
     }
     
     suspend fun updatePartBinLocation(partId: String, binLocationId: Long?) {
-        partDao.updateBinLocation(partId, binLocationId, System.currentTimeMillis())
+        updatePartBinLocations(partId, listOfNotNull(binLocationId))
+    }
+
+    suspend fun updatePartBinLocations(
+        partId: String,
+        binLocationIds: List<Long>,
+        updatedAt: Long = System.currentTimeMillis()
+    ) {
+        partDao.replacePartBinAssignments(
+            id = partId,
+            binLocationIds = binLocationIds,
+            updatedAt = updatedAt
+        )
     }
 
     suspend fun deletePart(partId: String) {
@@ -67,15 +99,23 @@ class PartRepository @Inject constructor(
     suspend fun getAllPartEntities(): List<PartEntity> {
         return partDao.getAllParts()
     }
+
+    // For export: map part IDs to all assigned bin IDs
+    suspend fun getAllPartBinIds(): Map<String, List<Long>> {
+        return partDao.getAllPartBinAssignments()
+            .groupBy { it.partId }
+            .mapValues { (_, refs) -> refs.map { it.binLocationId }.distinct() }
+    }
     
-    private fun PartEntity.toDomainModel(binLocation: BinLocation? = null) = BrickItem(
+    private fun PartEntity.toDomainModel(binLocations: List<BinLocation> = emptyList()) = BrickItem(
         id = id,
         name = name,
         type = type,
         category = category,
         imgUrl = imgUrl,
         score = null, // Score is per-scan, not stored on the part itself
-        binLocation = binLocation
+        binLocation = binLocations.firstOrNull(),
+        binLocations = binLocations
     )
     
     private fun BinLocationEntity.toDomainModel() = BinLocation(

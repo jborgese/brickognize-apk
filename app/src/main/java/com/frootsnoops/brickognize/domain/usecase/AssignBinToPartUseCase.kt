@@ -7,11 +7,11 @@ import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * Use case for assigning a bin location to a part.
+ * Use case for assigning one or more bin locations to a part.
  * 
  * This use case:
- * 1. Creates a new bin if needed (when binId is null and binLabel is provided)
- * 2. Updates the part's binLocationId
+ * 1. Optionally creates a new bin
+ * 2. Replaces the part's full bin assignment set
  * 3. Updates the part's updatedAt timestamp
  */
 class AssignBinToPartUseCase @Inject constructor(
@@ -20,20 +20,18 @@ class AssignBinToPartUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(
         partId: String,
-        binId: Long? = null,
+        binIds: List<Long> = emptyList(),
         newBinLabel: String? = null,
         newBinDescription: String? = null
     ): Result<Unit> {
         return try {
-            Timber.d("AssignBinToPartUseCase: partId=$partId, binId=$binId, newLabel=$newBinLabel")
-            
-            val finalBinId = if (binId != null) {
-                binId
-            } else if (newBinLabel != null) {
-                // Check for duplicate bin name before creating
+            Timber.d("AssignBinToPartUseCase: partId=$partId, binIds=$binIds, newLabel=$newBinLabel")
+
+            val normalizedBinIds = binIds.distinct().toMutableSet()
+            if (!newBinLabel.isNullOrBlank()) {
                 val existingBins = binLocationRepository.getAllBinLocations()
-                val duplicateBin = existingBins.find { 
-                    it.label.equals(newBinLabel, ignoreCase = true) 
+                val duplicateBin = existingBins.find {
+                    it.label.equals(newBinLabel, ignoreCase = true)
                 }
                 
                 if (duplicateBin != null) {
@@ -44,17 +42,13 @@ class AssignBinToPartUseCase @Inject constructor(
                     )
                 }
                 
-                // Create new bin
                 Timber.i("Creating new bin location: $newBinLabel")
-                binLocationRepository.createBinLocation(newBinLabel, newBinDescription)
-            } else {
-                // Clear bin assignment
-                Timber.d("Clearing bin assignment for part $partId")
-                null
+                val createdBinId = binLocationRepository.createBinLocation(newBinLabel, newBinDescription)
+                normalizedBinIds += createdBinId
             }
-            
-            Timber.i("Updating part $partId with bin $finalBinId")
-            partRepository.updatePartBinLocation(partId, finalBinId)
+
+            Timber.i("Updating part $partId with bins ${normalizedBinIds.toList()}")
+            partRepository.updatePartBinLocations(partId, normalizedBinIds.toList())
             Result.Success(Unit)
         } catch (e: Exception) {
             Timber.e(e, "AssignBinToPartUseCase: failed to assign bin")

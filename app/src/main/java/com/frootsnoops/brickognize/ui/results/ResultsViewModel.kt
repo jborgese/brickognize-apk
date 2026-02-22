@@ -34,6 +34,7 @@ data class ResultsUiState(
     val binLastModifiedAt: Map<Long, Long> = emptyMap(),
     val showBinPicker: Boolean = false,
     val selectedPartId: String? = null,
+    val selectedBinIds: Set<Long> = emptySet(),
     val isAssigningBin: Boolean = false,
     val error: UserError? = null,
     val feedbackMessage: String? = null,
@@ -79,10 +80,20 @@ class ResultsViewModel @Inject constructor(
     
     fun showBinPicker(partId: String) {
         Timber.d("Showing bin picker for part: $partId")
+        val selectedPart = _uiState.value.recognitionResult?.let { result ->
+            result.candidates.firstOrNull { it.id == partId }
+                ?: result.topCandidate?.takeIf { it.id == partId }
+        }
+        val selectedBinIds = selectedPart?.binLocations
+            ?.map { it.id }
+            ?.toSet()
+            ?: selectedPart?.binLocation?.let { setOf(it.id) }
+            ?: emptySet()
         _uiState.update { 
             it.copy(
                 showBinPicker = true,
-                selectedPartId = partId
+                selectedPartId = partId,
+                selectedBinIds = selectedBinIds
             )
         }
     }
@@ -108,25 +119,30 @@ class ResultsViewModel @Inject constructor(
         _uiState.update { 
             it.copy(
                 showBinPicker = false,
-                selectedPartId = null
+                selectedPartId = null,
+                selectedBinIds = emptySet()
             )
         }
     }
     
-    fun assignBinToPart(binId: Long?, newBinLabel: String? = null, newBinDescription: String? = null) {
+    fun assignBinsToPart(
+        selectedBinIds: Set<Long>,
+        newBinLabel: String? = null,
+        newBinDescription: String? = null
+    ) {
         val partId = _uiState.value.selectedPartId ?: run {
-            Timber.w("assignBinToPart called with no selected part")
+            Timber.w("assignBinsToPart called with no selected part")
             return
         }
         
-        Timber.i("Assigning bin to part: partId=$partId, binId=$binId, newBinLabel=$newBinLabel")
+        Timber.i("Assigning bins to part: partId=$partId, binIds=$selectedBinIds, newBinLabel=$newBinLabel")
         
         viewModelScope.launch {
             _uiState.update { it.copy(isAssigningBin = true) }
             
             val result = assignBinToPartUseCase(
                 partId = partId,
-                binId = binId,
+                binIds = selectedBinIds.toList(),
                 newBinLabel = newBinLabel,
                 newBinDescription = newBinDescription
             )
@@ -144,7 +160,8 @@ class ResultsViewModel @Inject constructor(
                         it.copy(
                             isAssigningBin = false,
                             showBinPicker = false,
-                            selectedPartId = null
+                            selectedPartId = null,
+                            selectedBinIds = emptySet()
                         )
                     }
                 }
@@ -201,7 +218,10 @@ class ResultsViewModel @Inject constructor(
                 // Update the part in the candidates list
                 val updatedCandidates = currentResult.candidates.map { candidate ->
                     if (candidate.id == partId) {
-                        candidate.copy(binLocation = updatedPart.binLocation)
+                        candidate.copy(
+                            binLocation = updatedPart.binLocation,
+                            binLocations = updatedPart.binLocations
+                        )
                     } else {
                         candidate
                     }
@@ -209,7 +229,10 @@ class ResultsViewModel @Inject constructor(
                 
                 // Update the top candidate if it matches
                 val updatedTopCandidate = if (currentResult.topCandidate?.id == partId) {
-                    currentResult.topCandidate.copy(binLocation = updatedPart.binLocation)
+                    currentResult.topCandidate.copy(
+                        binLocation = updatedPart.binLocation,
+                        binLocations = updatedPart.binLocations
+                    )
                 } else {
                     currentResult.topCandidate
                 }
@@ -249,8 +272,13 @@ class ResultsViewModel @Inject constructor(
 
         val refreshedCandidates = result.candidates.map { candidate ->
             val latestPart = latestPartsById[candidate.id]
-            if (latestPart != null && latestPart.binLocation != candidate.binLocation) {
-                candidate.copy(binLocation = latestPart.binLocation)
+            if (latestPart != null &&
+                (latestPart.binLocation != candidate.binLocation || latestPart.binLocations != candidate.binLocations)
+            ) {
+                candidate.copy(
+                    binLocation = latestPart.binLocation,
+                    binLocations = latestPart.binLocations
+                )
             } else {
                 candidate
             }
@@ -258,8 +286,13 @@ class ResultsViewModel @Inject constructor(
 
         val refreshedTopCandidate = result.topCandidate?.let { topCandidate ->
             val latestTopPart = latestPartsById[topCandidate.id]
-            if (latestTopPart != null && latestTopPart.binLocation != topCandidate.binLocation) {
-                topCandidate.copy(binLocation = latestTopPart.binLocation)
+            if (latestTopPart != null &&
+                (latestTopPart.binLocation != topCandidate.binLocation || latestTopPart.binLocations != topCandidate.binLocations)
+            ) {
+                topCandidate.copy(
+                    binLocation = latestTopPart.binLocation,
+                    binLocations = latestTopPart.binLocations
+                )
             } else {
                 topCandidate
             }

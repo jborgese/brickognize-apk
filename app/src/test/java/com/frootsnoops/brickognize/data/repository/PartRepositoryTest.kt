@@ -2,18 +2,26 @@ package com.frootsnoops.brickognize.data.repository
 
 import app.cash.turbine.test
 import com.frootsnoops.brickognize.data.local.dao.BinLocationDao
+import com.frootsnoops.brickognize.data.local.dao.PartBinAssignmentRef
 import com.frootsnoops.brickognize.data.local.dao.PartDao
 import com.frootsnoops.brickognize.data.local.entity.BinLocationEntity
 import com.frootsnoops.brickognize.data.local.entity.PartEntity
 import com.google.common.truth.Truth.assertThat
-import io.mockk.*
+import io.mockk.clearAllMocks
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.Runs
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @DisplayName("PartRepository Tests")
@@ -24,9 +32,10 @@ class PartRepositoryTest {
     private lateinit var binLocationDao: BinLocationDao
 
     private val timestamp = System.currentTimeMillis()
-    private val binEntity = BinLocationEntity(1L, "A1", "Top shelf", timestamp)
+    private val binEntityA1 = BinLocationEntity(1L, "A1", "Top shelf", timestamp)
+    private val binEntityB2 = BinLocationEntity(2L, "B2", "Drawer", timestamp)
     private val partEntity = PartEntity("p1", "Brick 2x4", "part", "Bricks", "url1", 1L, timestamp, timestamp)
-    private val partEntityNoBin = PartEntity("p2", "Plate 1x2", "part", "Plates", "url2", null, timestamp, timestamp)
+    private val partEntityNoBins = PartEntity("p2", "Plate 1x2", "part", "Plates", "url2", null, timestamp, timestamp)
 
     @BeforeEach
     fun setup() {
@@ -41,224 +50,141 @@ class PartRepositoryTest {
     }
 
     @Test
-    @DisplayName("getPartById returns part with bin location")
-    fun `getPartById returns part with bin`() = runTest {
+    @DisplayName("getPartById returns part with all bins")
+    fun `getPartById returns part with all bins`() = runTest {
         coEvery { partDao.getPartById("p1") } returns partEntity
-        coEvery { binLocationDao.getBinLocationById(1L) } returns binEntity
+        coEvery { partDao.getBinLocationsForPart("p1") } returns listOf(binEntityA1, binEntityB2)
 
         val result = repository.getPartById("p1")
 
         assertThat(result).isNotNull()
-        assertThat(result?.id).isEqualTo("p1")
-        assertThat(result?.name).isEqualTo("Brick 2x4")
-        assertThat(result?.binLocation).isNotNull()
-        assertThat(result?.binLocation?.label).isEqualTo("A1")
-
-        coVerify { partDao.getPartById("p1") }
-        coVerify { binLocationDao.getBinLocationById(1L) }
+        assertThat(result?.binLocation?.id).isEqualTo(1L)
+        assertThat(result?.binLocations?.map { it.id }).containsExactly(1L, 2L).inOrder()
     }
 
     @Test
-    @DisplayName("getPartById returns part without bin location")
-    fun `getPartById returns part without bin`() = runTest {
-        coEvery { partDao.getPartById("p2") } returns partEntityNoBin
+    @DisplayName("getPartById returns part without bins")
+    fun `getPartById returns part without bins`() = runTest {
+        coEvery { partDao.getPartById("p2") } returns partEntityNoBins
+        coEvery { partDao.getBinLocationsForPart("p2") } returns emptyList()
 
         val result = repository.getPartById("p2")
 
         assertThat(result).isNotNull()
-        assertThat(result?.id).isEqualTo("p2")
         assertThat(result?.binLocation).isNull()
-
-        coVerify { partDao.getPartById("p2") }
-        coVerify(exactly = 0) { binLocationDao.getBinLocationById(any()) }
+        assertThat(result?.binLocations).isEmpty()
     }
 
     @Test
-    @DisplayName("getPartById returns null when part not found")
-    fun `getPartById returns null when not found`() = runTest {
-        coEvery { partDao.getPartById("unknown") } returns null
+    @DisplayName("getPartById returns null when part is missing")
+    fun `getPartById returns null when missing`() = runTest {
+        coEvery { partDao.getPartById("missing") } returns null
 
-        val result = repository.getPartById("unknown")
+        val result = repository.getPartById("missing")
 
         assertThat(result).isNull()
+        coVerify(exactly = 0) { partDao.getBinLocationsForPart(any()) }
     }
 
     @Test
-    @DisplayName("getPartByIdFlow returns flow with bin location")
-    fun `getPartByIdFlow returns flow with bin`() = runTest {
+    @DisplayName("getPartByIdFlow maps bins from assignment table")
+    fun `getPartByIdFlow maps bins from assignments`() = runTest {
         every { partDao.getPartByIdFlow("p1") } returns flowOf(partEntity)
-        every { binLocationDao.getAllBinLocationsFlow() } returns flowOf(listOf(binEntity))
+        every { partDao.getBinLocationsForPartFlow("p1") } returns flowOf(listOf(binEntityA1, binEntityB2))
 
         repository.getPartByIdFlow("p1").test {
-            val result = awaitItem()
-            
-            assertThat(result).isNotNull()
-            assertThat(result?.id).isEqualTo("p1")
-            assertThat(result?.binLocation).isNotNull()
-            assertThat(result?.binLocation?.label).isEqualTo("A1")
-            
-            awaitComplete()
-        }
-
-        verify { partDao.getPartByIdFlow("p1") }
-        verify { binLocationDao.getAllBinLocationsFlow() }
-    }
-
-    @Test
-    @DisplayName("getPartByIdFlow returns flow without bin location")
-    fun `getPartByIdFlow returns flow without bin`() = runTest {
-        every { partDao.getPartByIdFlow("p2") } returns flowOf(partEntityNoBin)
-        every { binLocationDao.getAllBinLocationsFlow() } returns flowOf(listOf(binEntity))
-
-        repository.getPartByIdFlow("p2").test {
-            val result = awaitItem()
-            
-            assertThat(result).isNotNull()
-            assertThat(result?.binLocation).isNull()
-            
+            val item = awaitItem()
+            assertThat(item).isNotNull()
+            assertThat(item?.binLocations?.map { it.label }).containsExactly("A1", "B2").inOrder()
+            assertThat(item?.binLocation?.label).isEqualTo("A1")
             awaitComplete()
         }
     }
 
     @Test
-    @DisplayName("getPartByIdFlow returns null when part not found")
-    fun `getPartByIdFlow returns null when not found`() = runTest {
-        every { partDao.getPartByIdFlow("unknown") } returns flowOf(null)
-        every { binLocationDao.getAllBinLocationsFlow() } returns flowOf(emptyList())
-
-        repository.getPartByIdFlow("unknown").test {
-            val result = awaitItem()
-            assertThat(result).isNull()
-            awaitComplete()
-        }
-    }
-
-    @Test
-    @DisplayName("getPartsByBinLocationFlow returns parts for bin")
-    fun `getPartsByBinLocationFlow returns parts`() = runTest {
-        val part1 = partEntity.copy(id = "p1", binLocationId = 1L)
-        val part2 = partEntity.copy(id = "p2", binLocationId = 1L)
-        
-        every { partDao.getPartsByBinLocationFlow(1L) } returns flowOf(listOf(part1, part2))
-        every { binLocationDao.getBinLocationByIdFlow(1L) } returns flowOf(binEntity)
-
-        repository.getPartsByBinLocationFlow(1L).test {
-            val result = awaitItem()
-            
-            assertThat(result).hasSize(2)
-            assertThat(result[0].id).isEqualTo("p1")
-            assertThat(result[0].binLocation?.label).isEqualTo("A1")
-            assertThat(result[1].id).isEqualTo("p2")
-            
-            awaitComplete()
-        }
-
-        verify { partDao.getPartsByBinLocationFlow(1L) }
-        verify { binLocationDao.getBinLocationByIdFlow(1L) }
-    }
-
-    @Test
-    @DisplayName("getPartsByBinLocationFlow returns empty list")
-    fun `getPartsByBinLocationFlow returns empty list`() = runTest {
-        every { partDao.getPartsByBinLocationFlow(1L) } returns flowOf(emptyList())
-        every { binLocationDao.getBinLocationByIdFlow(1L) } returns flowOf(binEntity)
-
-        repository.getPartsByBinLocationFlow(1L).test {
-            val result = awaitItem()
-            assertThat(result).isEmpty()
-            awaitComplete()
-        }
-    }
-
-    @Test
-    @DisplayName("upsertPart calls DAO")
-    fun `upsertPart calls DAO`() = runTest {
-        coEvery { partDao.upsertPart(partEntity) } just Runs
-
-        repository.upsertPart(partEntity)
-
-        coVerify { partDao.upsertPart(partEntity) }
-    }
-
-    @Test
-    @DisplayName("upsertParts calls DAO with list")
-    fun `upsertParts calls DAO with list`() = runTest {
-        val parts = listOf(partEntity, partEntityNoBin)
-        coEvery { partDao.upsertParts(parts) } just Runs
-
-        repository.upsertParts(parts)
-
-        coVerify { partDao.upsertParts(parts) }
-    }
-
-    @Test
-    @DisplayName("updatePartBinLocation updates bin assignment")
-    fun `updatePartBinLocation updates bin`() = runTest {
-        val slot = slot<Long>()
-        coEvery { partDao.updateBinLocation("p1", capture(slot), any()) } just Runs
-
-        repository.updatePartBinLocation("p1", 2L)
-
-        assertThat(slot.captured).isEqualTo(2L)
-        coVerify { partDao.updateBinLocation("p1", 2L, any()) }
-    }
-
-    @Test
-    @DisplayName("updatePartBinLocation can set bin to null")
-    fun `updatePartBinLocation can set bin to null`() = runTest {
-        coEvery { partDao.updateBinLocation("p1", null, any()) } just Runs
-
-        repository.updatePartBinLocation("p1", null)
-
-        coVerify { partDao.updateBinLocation("p1", null, any()) }
-    }
-
-    @Test
-    @DisplayName("Domain model excludes score from entity")
-    fun `domain model excludes score from entity`() = runTest {
-        coEvery { partDao.getPartById("p1") } returns partEntity
-        coEvery { binLocationDao.getBinLocationById(1L) } returns binEntity
-
-        val result = repository.getPartById("p1")
-
-        assertThat(result?.score).isNull()
-    }
-
-    @Test
-    @DisplayName("getPartByIdFlow updates when bin changes")
-    fun `getPartByIdFlow updates when bin changes`() = runTest {
-        every { partDao.getPartByIdFlow("p1") } returns flowOf(partEntity)
-        every { binLocationDao.getAllBinLocationsFlow() } returns flowOf(listOf(binEntity))
-
-        repository.getPartByIdFlow("p1").test {
-            val result = awaitItem()
-            assertThat(result?.binLocation?.label).isEqualTo("A1")
-
-            awaitComplete()
-        }
-    }
-
-    @Test
-    @DisplayName("getPartsByBinLocationFlow updates when bin changes")
-    fun `getPartsByBinLocationFlow updates when bin changes`() = runTest {
+    @DisplayName("getPartsByBinLocationFlow returns parts with all assigned bins")
+    fun `getPartsByBinLocationFlow returns parts with all assigned bins`() = runTest {
         every { partDao.getPartsByBinLocationFlow(1L) } returns flowOf(listOf(partEntity))
-        every { binLocationDao.getBinLocationByIdFlow(1L) } returns flowOf(binEntity)
+        every { partDao.getAllPartBinAssignmentsFlow() } returns flowOf(
+            listOf(
+                PartBinAssignmentRef("p1", 1L),
+                PartBinAssignmentRef("p1", 2L)
+            )
+        )
+        every { binLocationDao.getAllBinLocationsFlow() } returns flowOf(listOf(binEntityA1, binEntityB2))
 
         repository.getPartsByBinLocationFlow(1L).test {
-            val result = awaitItem()
-            assertThat(result[0].binLocation?.description).isEqualTo("Top shelf")
-
+            val parts = awaitItem()
+            assertThat(parts).hasSize(1)
+            assertThat(parts[0].binLocations.map { it.id }).containsExactly(1L, 2L).inOrder()
             awaitComplete()
         }
     }
 
     @Test
-    @DisplayName("deletePart delegates to DAO")
-    fun `deletePart delegates to dao`() = runTest {
+    @DisplayName("getPartsByBinLocation returns mapped parts")
+    fun `getPartsByBinLocation returns mapped parts`() = runTest {
+        coEvery { partDao.getPartsByBinLocation(1L) } returns listOf(partEntity)
+        coEvery { partDao.getAllPartBinAssignments() } returns listOf(
+            PartBinAssignmentRef("p1", 1L),
+            PartBinAssignmentRef("p1", 2L)
+        )
+        coEvery { binLocationDao.getAllBinLocations() } returns listOf(binEntityA1, binEntityB2)
+
+        val parts = repository.getPartsByBinLocation(1L)
+
+        assertThat(parts).hasSize(1)
+        assertThat(parts[0].binLocations.map { it.label }).containsExactly("A1", "B2").inOrder()
+    }
+
+    @Test
+    @DisplayName("updatePartBinLocations delegates to DAO transaction")
+    fun `updatePartBinLocations delegates to dao`() = runTest {
+        coEvery { partDao.replacePartBinAssignments("p1", listOf(1L, 2L), any()) } just Runs
+
+        repository.updatePartBinLocations("p1", listOf(1L, 2L))
+
+        coVerify { partDao.replacePartBinAssignments("p1", listOf(1L, 2L), any()) }
+    }
+
+    @Test
+    @DisplayName("updatePartBinLocation wraps single-bin updates")
+    fun `updatePartBinLocation wraps single bin updates`() = runTest {
+        coEvery { partDao.replacePartBinAssignments("p1", listOf(3L), any()) } just Runs
+
+        repository.updatePartBinLocation("p1", 3L)
+
+        coVerify { partDao.replacePartBinAssignments("p1", listOf(3L), any()) }
+    }
+
+    @Test
+    @DisplayName("getAllPartBinIds groups assignments by part")
+    fun `getAllPartBinIds groups assignments`() = runTest {
+        coEvery { partDao.getAllPartBinAssignments() } returns listOf(
+            PartBinAssignmentRef("p1", 1L),
+            PartBinAssignmentRef("p1", 2L),
+            PartBinAssignmentRef("p2", 2L)
+        )
+
+        val result = repository.getAllPartBinIds()
+
+        assertThat(result["p1"]).containsExactly(1L, 2L).inOrder()
+        assertThat(result["p2"]).containsExactly(2L)
+    }
+
+    @Test
+    @DisplayName("upsert and delete operations delegate to DAO")
+    fun `upsert and delete delegate to dao`() = runTest {
+        coEvery { partDao.upsertPart(partEntity) } just Runs
+        coEvery { partDao.upsertParts(listOf(partEntity, partEntityNoBins)) } just Runs
         coEvery { partDao.deletePart("p1") } just Runs
 
+        repository.upsertPart(partEntity)
+        repository.upsertParts(listOf(partEntity, partEntityNoBins))
         repository.deletePart("p1")
 
+        coVerify { partDao.upsertPart(partEntity) }
+        coVerify { partDao.upsertParts(listOf(partEntity, partEntityNoBins)) }
         coVerify { partDao.deletePart("p1") }
     }
 }

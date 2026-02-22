@@ -3,7 +3,6 @@ package com.frootsnoops.brickognize.data.repository
 import com.frootsnoops.brickognize.data.local.dao.BinLocationDao
 import com.frootsnoops.brickognize.data.local.dao.PartDao
 import com.frootsnoops.brickognize.data.local.dao.ScanDao
-import com.frootsnoops.brickognize.data.local.entity.BinLocationEntity
 import com.frootsnoops.brickognize.data.local.relation.ScanWithCandidates
 import com.frootsnoops.brickognize.domain.model.BinLocation
 import com.frootsnoops.brickognize.domain.model.BrickItem
@@ -33,8 +32,10 @@ class ScanRepository @Inject constructor(
         
         val topItem = if (topItemId != null) {
             val part = partDao.getPartById(topItemId)
-            val binLocation = part?.binLocationId?.let { binLocationDao.getBinLocationById(it) }
             part?.let {
+                val partBinLocations = partDao.getBinLocationsForPart(topItemId).map { bin ->
+                    BinLocation(bin.id, bin.label, bin.description, bin.createdAt)
+                }
                 BrickItem(
                     id = it.id,
                     name = it.name,
@@ -42,9 +43,8 @@ class ScanRepository @Inject constructor(
                     category = it.category,
                     imgUrl = it.imgUrl,
                     score = null,
-                    binLocation = binLocation?.let { bin ->
-                        BinLocation(bin.id, bin.label, bin.description, bin.createdAt)
-                    }
+                    binLocation = partBinLocations.firstOrNull(),
+                    binLocations = partBinLocations
                 )
             }
         } else {

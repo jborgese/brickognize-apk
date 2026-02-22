@@ -177,7 +177,7 @@ class BinsViewModel @Inject constructor(
     fun deleteBin(binLocation: BinLocation) {
         viewModelScope.launch {
             try {
-                Timber.i("Deleting bin: ${binLocation.label} (ID: ${binLocation.id}) and all its parts")
+                Timber.i("Deleting bin: ${binLocation.label} (ID: ${binLocation.id})")
                 deleteBinLocationUseCase(binLocation)
                 
                 // Clear selection if the deleted bin was selected
@@ -187,7 +187,7 @@ class BinsViewModel @Inject constructor(
                 
                 // Refresh the bins list
                 loadBins()
-                Timber.i("Bin and its parts deleted successfully: ${binLocation.label}")
+                Timber.i("Bin deleted successfully: ${binLocation.label}")
             } catch (e: Exception) {
                 Timber.e(e, "Failed to delete bin: ${binLocation.label}")
                 _uiState.update { it.copy(importMessage = "Failed to delete bin: ${e.message}") }

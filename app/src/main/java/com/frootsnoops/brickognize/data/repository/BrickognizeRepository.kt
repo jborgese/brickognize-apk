@@ -118,11 +118,8 @@ class BrickognizeRepository @Inject constructor(
             
             // Build domain model result
             val brickItems = dto.items.map { candidateDto ->
-                val part = partDao.getPartById(candidateDto.id)
-                val binLocation = part?.binLocationId?.let { binId ->
-                    binLocationDao.getBinLocationById(binId)?.let { bin ->
-                        BinLocation(bin.id, bin.label, bin.description, bin.createdAt)
-                    }
+                val partBinLocations = partDao.getBinLocationsForPart(candidateDto.id).map { bin ->
+                    BinLocation(bin.id, bin.label, bin.description, bin.createdAt)
                 }
                 
                 BrickItem(
@@ -132,7 +129,8 @@ class BrickognizeRepository @Inject constructor(
                     category = candidateDto.category,
                     imgUrl = candidateDto.imgUrl,
                     score = candidateDto.score,
-                    binLocation = binLocation
+                    binLocation = partBinLocations.firstOrNull(),
+                    binLocations = partBinLocations
                 )
             }
             

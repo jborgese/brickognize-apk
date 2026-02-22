@@ -19,14 +19,15 @@ data class PartExport(
     val type: String,
     val category: String? = null,
     val imgUrl: String? = null,
-    val binLabel: String? = null,
+    val binLabel: String? = null, // Legacy single-bin field (v2 and below)
+    val binLabels: List<String>? = null,
     val createdAt: Long,
     val updatedAt: Long
 )
 
 @Serializable
 data class BinLocationsBackup(
-    val version: Int = 2,
+    val version: Int = 3,
     val exportedAt: Long,
     val binLocations: List<BinLocationExport>,
     val parts: List<PartExport>? = null

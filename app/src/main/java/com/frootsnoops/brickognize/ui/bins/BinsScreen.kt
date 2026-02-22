@@ -318,7 +318,7 @@ fun BinCard(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text("Delete Bin?") },
             text = { 
-                Text("Are you sure you want to delete \"${bin.label.uppercase(Locale.getDefault())}\"? All parts in this bin will also be deleted. This cannot be undone.") 
+                Text("Are you sure you want to delete \"${bin.label.uppercase(Locale.getDefault())}\"? Parts assigned to this bin will remain in your catalog but lose this assignment.") 
             },
             confirmButton = {
                 TextButton(

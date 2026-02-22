@@ -127,8 +127,8 @@ class ResultsViewModelTest {
     @DisplayName("Setting recognition result refreshes persisted bin assignments")
     fun `setRecognitionResult refreshes bin assignment from persistence`() = runTest {
         val partId = "part-db-refresh"
-        val inputPart = testPart.copy(id = partId, binLocation = null)
-        val persistedPart = inputPart.copy(binLocation = testBin2)
+        val inputPart = testPart.copy(id = partId, binLocation = null, binLocations = emptyList())
+        val persistedPart = inputPart.copy(binLocation = testBin2, binLocations = listOf(testBin2))
         val result = RecognitionResult(
             "scan-db-refresh",
             inputPart,
@@ -156,6 +156,7 @@ class ResultsViewModelTest {
             val state = awaitItem()
             assertThat(state.showBinPicker).isTrue()
             assertThat(state.selectedPartId).isEqualTo("part-123")
+            assertThat(state.selectedBinIds).isEmpty()
         }
     }
 
@@ -182,8 +183,12 @@ class ResultsViewModelTest {
         viewModel.showBinPicker(partId)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val updatedPart = testPart.copy(id = partId, binLocation = testBin1)
-        coEvery { assignBinToPartUseCase(partId, 1L, null, null) } returns Result.Success(Unit)
+        val updatedPart = testPart.copy(
+            id = partId,
+            binLocation = testBin1,
+            binLocations = listOf(testBin1)
+        )
+        coEvery { assignBinToPartUseCase(partId, listOf(1L), null, null) } returns Result.Success(Unit)
         coEvery { getPartByIdUseCase.getOnce(partId) } returns updatedPart
 
         val recognitionResult = RecognitionResult(
@@ -194,7 +199,7 @@ class ResultsViewModelTest {
         viewModel.setRecognitionResult(recognitionResult)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.assignBinToPart(binId = 1L)
+        viewModel.assignBinsToPart(selectedBinIds = setOf(1L))
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -205,7 +210,7 @@ class ResultsViewModelTest {
             assertThat(state.recognitionResult?.topCandidate?.binLocation).isEqualTo(testBin1)
         }
 
-        coVerify { assignBinToPartUseCase(partId, 1L, null, null) }
+        coVerify { assignBinToPartUseCase(partId, listOf(1L), null, null) }
         coVerify { getPartByIdUseCase.getOnce(partId) }
     }
 
@@ -217,11 +222,15 @@ class ResultsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coEvery { 
-            assignBinToPartUseCase(partId, null, "C3", "New bin") 
+            assignBinToPartUseCase(partId, emptyList(), "C3", "New bin")
         } returns Result.Success(Unit)
         coEvery { getPartByIdUseCase.getOnce(partId) } returns testPart.copy(id = partId)
 
-        viewModel.assignBinToPart(binId = null, newBinLabel = "C3", newBinDescription = "New bin")
+        viewModel.assignBinsToPart(
+            selectedBinIds = emptySet(),
+            newBinLabel = "C3",
+            newBinDescription = "New bin"
+        )
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -230,7 +239,7 @@ class ResultsViewModelTest {
             assertThat(state.showBinPicker).isFalse()
         }
 
-        coVerify { assignBinToPartUseCase(partId, null, "C3", "New bin") }
+        coVerify { assignBinToPartUseCase(partId, emptyList(), "C3", "New bin") }
     }
 
     @Test
@@ -241,10 +250,10 @@ class ResultsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coEvery { 
-            assignBinToPartUseCase(partId, 1L, null, null) 
+            assignBinToPartUseCase(partId, listOf(1L), null, null)
         } returns Result.Error(Exception("DB error"), "Failed to assign bin")
 
-        viewModel.assignBinToPart(binId = 1L)
+        viewModel.assignBinsToPart(selectedBinIds = setOf(1L))
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -258,7 +267,7 @@ class ResultsViewModelTest {
     @Test
     @DisplayName("Assign bin without selected part does nothing")
     fun `assignBinToPart without selectedPartId does nothing`() = runTest {
-        viewModel.assignBinToPart(binId = 1L)
+        viewModel.assignBinsToPart(selectedBinIds = setOf(1L))
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { assignBinToPartUseCase(any(), any(), any(), any()) }
@@ -274,7 +283,7 @@ class ResultsViewModelTest {
             assignBinToPartUseCase(any(), any(), any(), any()) 
         } returns Result.Error(Exception(), "Test error")
 
-        viewModel.assignBinToPart(binId = 1L)
+        viewModel.assignBinsToPart(selectedBinIds = setOf(1L))
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.clearError()
@@ -303,11 +312,14 @@ class ResultsViewModelTest {
         viewModel.showBinPicker(partId)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val updatedPart = part1.copy(binLocation = testBin2)
-        coEvery { assignBinToPartUseCase(partId, 2L, null, null) } returns Result.Success(Unit)
+        val updatedPart = part1.copy(
+            binLocation = testBin2,
+            binLocations = listOf(testBin2)
+        )
+        coEvery { assignBinToPartUseCase(partId, listOf(2L), null, null) } returns Result.Success(Unit)
         coEvery { getPartByIdUseCase.getOnce(partId) } returns updatedPart
 
-        viewModel.assignBinToPart(binId = 2L)
+        viewModel.assignBinsToPart(selectedBinIds = setOf(2L))
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.uiState.test {

@@ -6,6 +6,7 @@ import com.frootsnoops.brickognize.data.local.dao.BinLocationDao
 import com.frootsnoops.brickognize.data.local.dao.PartDao
 import com.frootsnoops.brickognize.data.local.dao.ScanDao
 import com.frootsnoops.brickognize.data.local.entity.BinLocationEntity
+import com.frootsnoops.brickognize.data.local.entity.PartBinAssignmentEntity
 import com.frootsnoops.brickognize.data.local.entity.PartEntity
 import com.frootsnoops.brickognize.data.local.entity.ScanCandidateEntity
 import com.frootsnoops.brickognize.data.local.entity.ScanEntity
@@ -14,10 +15,11 @@ import com.frootsnoops.brickognize.data.local.entity.ScanEntity
     entities = [
         BinLocationEntity::class,
         PartEntity::class,
+        PartBinAssignmentEntity::class,
         ScanEntity::class,
         ScanCandidateEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class BrickDatabase : RoomDatabase() {
