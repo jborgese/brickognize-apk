@@ -38,8 +38,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.graphics.Bitmap
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.bitmapConfig
 import com.frootsnoops.brickognize.R
 import com.frootsnoops.brickognize.domain.model.BrickItem
 import timber.log.Timber
@@ -135,7 +136,7 @@ fun BinsScreen(
                                 }
                             },
                             leadingIcon = {
-                                Icon(Icons.Default.FileDownload, contentDescription = null)
+                                Icon(Icons.Default.FileUpload, contentDescription = null)
                             }
                         )
                         DropdownMenuItem(
@@ -145,7 +146,7 @@ fun BinsScreen(
                                 importLauncher.launch("application/json")
                             },
                             leadingIcon = {
-                                Icon(Icons.Default.FileUpload, contentDescription = null)
+                                Icon(Icons.Default.FileDownload, contentDescription = null)
                             }
                         )
                     }

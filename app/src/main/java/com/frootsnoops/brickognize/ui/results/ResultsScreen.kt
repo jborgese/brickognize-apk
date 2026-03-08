@@ -22,8 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.graphics.Bitmap
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.bitmapConfig
+import coil3.size.Size
 import com.frootsnoops.brickognize.R
 import com.frootsnoops.brickognize.domain.model.BrickItem
 import com.frootsnoops.brickognize.util.naturalSortComparator
@@ -225,7 +227,7 @@ fun BrickItemCard(
                 val sizePx = with(androidx.compose.ui.platform.LocalDensity.current) { 80.dp.roundToPx() }
                 val builder = ImageRequest.Builder(context)
                     .data(item.imgUrl)
-                    .size(sizePx, sizePx)
+                    .size(Size(sizePx, sizePx))
                     .placeholder(R.drawable.ic_image_placeholder)
                     .error(R.drawable.ic_image_error)
                 // Treat top result image as critical: keep default ARGB_8888

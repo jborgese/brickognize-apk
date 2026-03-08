@@ -1,7 +1,7 @@
 package com.frootsnoops.brickognize.ui.results
 
 import android.content.Context
-import coil.ImageLoader
+import coil3.ImageLoader
 import com.frootsnoops.brickognize.data.repository.BinLocationRepository
 import com.frootsnoops.brickognize.data.remote.dto.FeedbackResponseDto
 import com.frootsnoops.brickognize.domain.model.BrickItem

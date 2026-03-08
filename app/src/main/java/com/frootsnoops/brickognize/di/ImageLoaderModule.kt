@@ -1,15 +1,17 @@
 package com.frootsnoops.brickognize.di
 
 import android.content.Context
-import coil.ImageLoader
-import coil.disk.DiskCache
-import coil.memory.MemoryCache
+import coil3.ImageLoader
+import coil3.disk.DiskCache
+import coil3.memory.MemoryCache
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
+import okio.Path.Companion.toOkioPath
 import javax.inject.Singleton
 
 @Module
@@ -22,17 +24,15 @@ object ImageLoaderModule {
         @ApplicationContext context: Context
     ): DiskCache {
         return DiskCache.Builder()
-            .directory(java.io.File(context.cacheDir, "image_cache"))
+            .directory(java.io.File(context.cacheDir, "image_cache").toOkioPath())
             .maxSizeBytes(128L * 1024 * 1024) // 128 MB
             .build()
     }
 
     @Provides
     @Singleton
-    fun provideMemoryCache(
-        @ApplicationContext context: Context
-    ): MemoryCache {
-        return MemoryCache.Builder(context)
+    fun provideMemoryCache(): MemoryCache {
+        return MemoryCache.Builder()
             .maxSizePercent(0.25) // Use up to 25% of app memory
             .build()
     }
@@ -46,10 +46,11 @@ object ImageLoaderModule {
         memoryCache: MemoryCache
     ): ImageLoader {
         return ImageLoader.Builder(context)
-            .okHttpClient(okHttpClient)
+            .components {
+                add(OkHttpNetworkFetcherFactory(callFactory = { okHttpClient }))
+            }
             .diskCache(diskCache)
             .memoryCache(memoryCache)
-            .respectCacheHeaders(true)
             .crossfade(true)
             .build()
     }

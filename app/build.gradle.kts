@@ -3,9 +3,10 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
 }
 
 android {
@@ -50,7 +51,7 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(
-                getDefaultProguardFile("proguard-android.txt"),
+                getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
@@ -85,10 +86,6 @@ android {
         language {
             enableSplit = false
         }
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
     }
 
     packaging {
@@ -127,7 +124,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
 
     // Compose BOM - Latest for Android 15/16 Material You support
-    val composeBom = platform("androidx.compose:compose-bom:2024.11.00")
+    val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -150,19 +147,20 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // Room - Latest version
-    val roomVersion = "2.6.1"
+    val roomVersion = "2.7.0"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
 
     // Retrofit & OkHttp
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-kotlinx-serialization:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    // Coil (image loading) - Latest version
-    implementation("io.coil-kt:coil-compose:2.7.0")
+    // Coil (image loading) - Coil 3 (KMP rewrite)
+    implementation("io.coil-kt.coil3:coil-compose:3.1.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.1.0")
 
     // CameraX - Latest stable
     val cameraxVersion = "1.4.1"
@@ -172,13 +170,10 @@ dependencies {
     implementation("androidx.camera:camera-view:$cameraxVersion")
 
     // DataStore
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-
-    // Gson
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("androidx.datastore:datastore-preferences:1.1.4")
 
     // Kotlinx Serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     // Timber - Logging
     implementation("com.jakewharton.timber:timber:5.0.1")
@@ -206,10 +201,10 @@ dependencies {
     androidTestImplementation("com.google.truth:truth:1.1.5")
     
     // Kotlin reflection (for ProGuard tests)
-    testImplementation("org.jetbrains.kotlin:kotlin-reflect:1.9.20")
+    testImplementation("org.jetbrains.kotlin:kotlin-reflect:2.1.10")
     
     // Robolectric - Fast Android unit tests
-    testImplementation("org.robolectric:robolectric:4.11.1")
+    testImplementation("org.robolectric:robolectric:4.14.1")
     
     // Hilt testing
     testImplementation("com.google.dagger:hilt-android-testing:2.52")
@@ -218,8 +213,8 @@ dependencies {
     kspAndroidTest("com.google.dagger:hilt-android-compiler:2.52")
     
     // Room testing
-    testImplementation("androidx.room:room-testing:2.6.1")
-    androidTestImplementation("androidx.room:room-testing:2.6.1")
+    testImplementation("androidx.room:room-testing:$roomVersion")
+    androidTestImplementation("androidx.room:room-testing:$roomVersion")
 
     // AndroidX Test Core for InstrumentationRegistry
     androidTestImplementation("androidx.test:core:1.5.0")

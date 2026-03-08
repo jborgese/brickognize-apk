@@ -1,8 +1,8 @@
 package com.frootsnoops.brickognize
 
 import android.app.Application
-import coil.Coil
-import coil.ImageLoader
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
 import com.frootsnoops.brickognize.util.CrashReportingTree
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
@@ -10,15 +10,14 @@ import timber.log.Timber
 import java.io.File
 
 @HiltAndroidApp
-class BrickognizeApp : Application() {
-    
+class BrickognizeApp : Application(), SingletonImageLoader.Factory {
+
     override fun onCreate() {
         super.onCreate()
         initializeTimber()
-        initializeCoil()
         cleanStaleCameraImages()
     }
-    
+
     /**
      * Initialize Timber logging.
      * - Debug builds: Log everything to logcat
@@ -50,17 +49,16 @@ class BrickognizeApp : Application() {
     }
 
     /**
-     * Initialize Coil with the app's singleton ImageLoader from Hilt.
+     * Provide the singleton ImageLoader via Coil 3's factory interface.
      */
-    private fun initializeCoil() {
-      val entryPoint = EntryPointAccessors.fromApplication(this, ImageLoaderEntryPoint::class.java)
-      val imageLoader: ImageLoader = entryPoint.imageLoader()
-      Coil.setImageLoader(imageLoader)
+    override fun newImageLoader(context: android.content.Context): ImageLoader {
+        val entryPoint = EntryPointAccessors.fromApplication(this, ImageLoaderEntryPoint::class.java)
+        return entryPoint.imageLoader()
     }
 }
 
 @dagger.hilt.EntryPoint
 @dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
 interface ImageLoaderEntryPoint {
-  fun imageLoader(): ImageLoader
+    fun imageLoader(): ImageLoader
 }

@@ -2,35 +2,36 @@ package com.frootsnoops.brickognize.di
 
 import com.frootsnoops.brickognize.BuildConfig
 import com.frootsnoops.brickognize.data.remote.api.BrickognizeApi
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import android.content.Context
+import kotlinx.serialization.json.Json
 import okhttp3.Cache
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-    
+
     private const val BASE_URL = "https://api.brickognize.com/"
-    
+
     @Provides
     @Singleton
-    fun provideGson(): Gson {
-        return GsonBuilder()
-            .setLenient()
-            .create()
+    fun provideJson(): Json {
+        return Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
     }
-    
+
     @Provides
     @Singleton
     fun provideOkHttpClient(
@@ -43,7 +44,7 @@ object NetworkModule {
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .cache(cache)
-        
+
         // Add logging interceptor in debug builds
         if (BuildConfig.DEBUG) {
             val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -51,23 +52,24 @@ object NetworkModule {
             }
             builder.addInterceptor(loggingInterceptor)
         }
-        
+
         return builder.build()
     }
-    
+
     @Provides
     @Singleton
     fun provideRetrofit(
         okHttpClient: OkHttpClient,
-        gson: Gson
+        json: Json
     ): Retrofit {
+        val contentType = "application/json".toMediaType()
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create(gson))
+            .addConverterFactory(json.asConverterFactory(contentType))
             .build()
     }
-    
+
     @Provides
     @Singleton
     fun provideBrickognizeApi(retrofit: Retrofit): BrickognizeApi {

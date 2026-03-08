@@ -22,8 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.graphics.Bitmap
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.bitmapConfig
 import com.frootsnoops.brickognize.R
 import com.frootsnoops.brickognize.domain.model.ScanHistoryItem
 import com.frootsnoops.brickognize.util.toRelativeTime

@@ -15,8 +15,8 @@ import com.frootsnoops.brickognize.domain.usecase.GetAllBinLocationsUseCase
 import com.frootsnoops.brickognize.domain.usecase.GetPartByIdUseCase
 import com.frootsnoops.brickognize.domain.usecase.SubmitFeedbackUseCase
 import android.content.Context
-import coil.ImageLoader
-import coil.request.ImageRequest
+import coil3.ImageLoader
+import coil3.request.ImageRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
