@@ -206,10 +206,11 @@ fun BinsScreen(
             }
             
             else -> {
-                if (uiState.selectedBin != null) {
+                val selectedBin = uiState.selectedBin
+                if (selectedBin != null) {
                     // Show parts in selected bin
                     BinDetailsView(
-                        bin = uiState.selectedBin!!,
+                        bin = selectedBin,
                         parts = uiState.partsInSelectedBin,
                         onBack = { viewModel.clearSelection() },
                         onDeletePart = { viewModel.deletePart(it) }

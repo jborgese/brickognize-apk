@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.frootsnoops.brickognize.ui.components.ErrorCard
+import timber.log.Timber
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -218,17 +219,15 @@ fun ScanScreen(
  */
 private fun createTempImageUri(context: Context): Uri? {
     return try {
-        val imageFile = File(
-            context.cacheDir,
-            "camera_${System.currentTimeMillis()}.jpg"
-        )
+        val imageDir = File(context.cacheDir, "camera_images").apply { mkdirs() }
+        val imageFile = File(imageDir, "camera_${System.currentTimeMillis()}.jpg")
         FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
             imageFile
         )
     } catch (e: Exception) {
-        e.printStackTrace()
+        Timber.e(e, "Failed to create camera URI")
         null
     }
 }

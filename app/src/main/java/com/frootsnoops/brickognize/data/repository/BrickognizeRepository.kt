@@ -142,10 +142,17 @@ class BrickognizeRepository @Inject constructor(
             )
             
             Timber.i("Image recognition completed successfully: ${brickItems.size} items")
+
+            // Clean up temp camera image from cache directory
+            if (imageFile.absolutePath.contains("/cache/")) {
+                val deleted = imageFile.delete()
+                Timber.d("Cleaned up temp image: ${imageFile.name}, deleted=$deleted")
+            }
+
             Result.Success(recognitionResult)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to recognize image: ${e.localizedMessage}")
-            Result.Error(e, "Failed to recognize image: ${e.localizedMessage}")
+            Timber.e(e, "Failed to recognize image")
+            Result.Error(e)
         }
     }
 
@@ -172,7 +179,7 @@ class BrickognizeRepository @Inject constructor(
             Result.Success(body)
         } catch (e: Exception) {
             Timber.e(e, "Failed to submit feedback")
-            Result.Error(e, e.message ?: "Failed to submit feedback")
+            Result.Error(e)
         }
     }
 }

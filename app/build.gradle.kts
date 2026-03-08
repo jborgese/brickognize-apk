@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -33,10 +35,14 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("../keystore.jks")
-            storePassword = "brickognize_key"
-            keyAlias = "brickognize"
-            keyPassword = "brickognize_key"
+            val localProps = Properties().apply {
+                val localFile = rootProject.file("local.properties")
+                if (localFile.exists()) load(localFile.inputStream())
+            }
+            storeFile = file(localProps.getProperty("KEYSTORE_FILE", "../keystore.jks"))
+            storePassword = localProps.getProperty("KEYSTORE_PASSWORD", "")
+            keyAlias = localProps.getProperty("KEY_ALIAS", "")
+            keyPassword = localProps.getProperty("KEY_PASSWORD", "")
         }
     }
 
