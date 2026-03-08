@@ -26,6 +26,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.frootsnoops.brickognize.R
 import com.frootsnoops.brickognize.domain.model.BrickItem
+import com.frootsnoops.brickognize.util.naturalSortComparator
 import java.util.Locale
 
 enum class BinSortOption {
@@ -433,7 +434,7 @@ fun BinPickerDialog(
     // Sort bins based on selected option
     val sortedBins = remember(availableBins, binLastModifiedAt, selectedSort) {
         when (selectedSort) {
-            BinSortOption.ALPHABETICAL -> availableBins.sortedBy { it.label.uppercase() }
+            BinSortOption.ALPHABETICAL -> availableBins.sortedWith(compareBy(naturalSortComparator) { it.label })
             BinSortOption.LAST_MODIFIED -> availableBins.sortedByDescending { bin ->
                 binLastModifiedAt[bin.id] ?: bin.createdAt
             }

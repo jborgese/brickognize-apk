@@ -78,6 +78,7 @@ fun BrickognizeNavGraph(
                     }
                 },
                 onNavigateHome = {
+                    scanViewModel?.resetState()
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Home.route) { inclusive = false }
                         launchSingleTop = true

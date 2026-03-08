@@ -47,6 +47,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.frootsnoops.brickognize.util.naturalSortComparator
 
 enum class BinListSortOption {
     ALPHABETICAL,
@@ -66,7 +67,7 @@ fun BinsScreen(
     var selectedSort by rememberSaveable { mutableStateOf(BinListSortOption.ALPHABETICAL) }
     val sortedBins = remember(uiState.bins, uiState.binLastModifiedAt, selectedSort) {
         when (selectedSort) {
-            BinListSortOption.ALPHABETICAL -> uiState.bins.sortedBy { it.binLocation.label.uppercase(Locale.getDefault()) }
+            BinListSortOption.ALPHABETICAL -> uiState.bins.sortedWith(compareBy(naturalSortComparator) { it.binLocation.label })
             BinListSortOption.LAST_MODIFIED -> uiState.bins.sortedByDescending { binWithCount ->
                 uiState.binLastModifiedAt[binWithCount.binLocation.id] ?: binWithCount.binLocation.createdAt
             }

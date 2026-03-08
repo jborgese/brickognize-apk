@@ -161,7 +161,8 @@ class ResultsViewModel @Inject constructor(
                             isAssigningBin = false,
                             showBinPicker = false,
                             selectedPartId = null,
-                            selectedBinIds = emptySet()
+                            selectedBinIds = emptySet(),
+                            feedbackMessage = "Bin assignment saved"
                         )
                     }
                 }
