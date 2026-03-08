@@ -105,3 +105,6 @@ lint/tmp/
 
 # Claude
 .claude/
+
+# VS Code
+.vscode/
