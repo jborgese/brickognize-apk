@@ -108,3 +108,4 @@ lint/tmp/
 
 # VS Code
 .vscode/
+/.vscode
