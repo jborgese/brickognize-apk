@@ -5,6 +5,7 @@ import coil3.ImageLoader
 import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,9 +32,11 @@ object ImageLoaderModule {
 
     @Provides
     @Singleton
-    fun provideMemoryCache(): MemoryCache {
+    fun provideMemoryCache(
+        @ApplicationContext context: Context
+    ): MemoryCache {
         return MemoryCache.Builder()
-            .maxSizePercent(0.25) // Use up to 25% of app memory
+            .maxSizePercent(context, 0.25) // Use up to 25% of app memory
             .build()
     }
 
