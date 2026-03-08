@@ -25,6 +25,8 @@ import android.graphics.Bitmap
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.bitmapConfig
+import coil3.request.error
+import coil3.request.placeholder
 import com.frootsnoops.brickognize.R
 import com.frootsnoops.brickognize.domain.model.ScanHistoryItem
 import com.frootsnoops.brickognize.util.toRelativeTime
