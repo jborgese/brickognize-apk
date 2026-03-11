@@ -29,6 +29,7 @@ import coil3.request.error
 import coil3.request.placeholder
 import com.frootsnoops.brickognize.R
 import com.frootsnoops.brickognize.domain.model.ScanHistoryItem
+import com.frootsnoops.brickognize.ui.components.BrickPartImage
 import com.frootsnoops.brickognize.util.toRelativeTime
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -129,19 +130,28 @@ fun HistoryItemCard(item: ScanHistoryItem) {
                 modifier = Modifier.size(80.dp)
             ) {
                 val sizePx = with(androidx.compose.ui.platform.LocalDensity.current) { 80.dp.roundToPx() }
-                val request = ImageRequest.Builder(context)
-                    .data(item.topItem?.displayImgUrl ?: item.imagePath)
-                    .size(sizePx, sizePx)
-                    .placeholder(R.drawable.ic_image_placeholder)
-                    .error(R.drawable.ic_image_error)
-                    .bitmapConfig(Bitmap.Config.RGB_565) // non-critical history thumbnail
-                    .build()
-                AsyncImage(
-                    model = request,
-                    contentDescription = item.topItem?.name,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
+                val topItem = item.topItem
+                if (topItem != null) {
+                    BrickPartImage(
+                        part = topItem,
+                        modifier = Modifier.fillMaxSize(),
+                        sizePx = sizePx
+                    )
+                } else {
+                    val request = ImageRequest.Builder(context)
+                        .data(item.imagePath)
+                        .size(sizePx, sizePx)
+                        .placeholder(R.drawable.ic_image_placeholder)
+                        .error(R.drawable.ic_image_error)
+                        .bitmapConfig(Bitmap.Config.RGB_565)
+                        .build()
+                    AsyncImage(
+                        model = request,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
             
             // Details

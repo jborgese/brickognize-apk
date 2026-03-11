@@ -22,14 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.graphics.Bitmap
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.bitmapConfig
-import coil3.request.error
-import coil3.request.placeholder
-import coil3.size.Size
 import com.frootsnoops.brickognize.R
 import com.frootsnoops.brickognize.domain.model.BrickItem
+import com.frootsnoops.brickognize.ui.components.BrickPartImage
 import com.frootsnoops.brickognize.util.naturalSortComparator
 import java.util.Locale
 
@@ -227,21 +222,11 @@ fun BrickItemCard(
                 modifier = Modifier.size(80.dp)
             ) {
                 val sizePx = with(androidx.compose.ui.platform.LocalDensity.current) { 80.dp.roundToPx() }
-                val builder = ImageRequest.Builder(context)
-                    .data(item.displayImgUrl)
-                    .size(Size(sizePx, sizePx))
-                    .placeholder(R.drawable.ic_image_placeholder)
-                    .error(R.drawable.ic_image_error)
-                // Treat top result image as critical: keep default ARGB_8888
-                if (!isTopResult) {
-                    builder.bitmapConfig(Bitmap.Config.RGB_565)
-                }
-                val request = builder.build()
-                AsyncImage(
-                    model = request,
-                    contentDescription = item.name,
+                BrickPartImage(
+                    part = item,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    sizePx = sizePx,
+                    bitmapConfig = if (isTopResult) Bitmap.Config.ARGB_8888 else Bitmap.Config.RGB_565
                 )
             }
             

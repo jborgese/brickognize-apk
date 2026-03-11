@@ -37,14 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
-import android.graphics.Bitmap
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.bitmapConfig
-import coil3.request.error
-import coil3.request.placeholder
-import com.frootsnoops.brickognize.R
 import com.frootsnoops.brickognize.domain.model.BrickItem
+import com.frootsnoops.brickognize.ui.components.BrickPartImage
 import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
@@ -422,20 +416,11 @@ fun BinCard(
                             modifier = Modifier.size(50.dp),
                             shape = RoundedCornerShape(4.dp)
                         ) {
-                            val context = LocalContext.current
                             val sizePx = with(androidx.compose.ui.platform.LocalDensity.current) { 50.dp.roundToPx() }
-                            val request = ImageRequest.Builder(context)
-                                .data(part.displayImgUrl)
-                                .size(sizePx, sizePx)
-                                .placeholder(R.drawable.ic_image_placeholder)
-                                .error(R.drawable.ic_image_error)
-                                .bitmapConfig(Bitmap.Config.RGB_565) // non-critical thumbnail
-                                .build()
-                            AsyncImage(
-                                model = request,
-                                contentDescription = part.name,
+                            BrickPartImage(
+                                part = part,
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                sizePx = sizePx
                             )
                         }
                     }
@@ -550,29 +535,21 @@ fun PartCard(part: BrickItem, onDelete: () -> Unit) {
                 )
             }
     ) {
+        val context = LocalContext.current
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val context = LocalContext.current
             Card(
                 modifier = Modifier.size(60.dp)
             ) {
                 val sizePx = with(androidx.compose.ui.platform.LocalDensity.current) { 60.dp.roundToPx() }
-                val request = ImageRequest.Builder(context)
-                    .data(part.displayImgUrl)
-                    .size(sizePx, sizePx)
-                    .placeholder(R.drawable.ic_image_placeholder)
-                    .error(R.drawable.ic_image_error)
-                    .bitmapConfig(Bitmap.Config.RGB_565) // non-critical card thumbnail
-                    .build()
-                AsyncImage(
-                    model = request,
-                    contentDescription = part.name,
+                BrickPartImage(
+                    part = part,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    sizePx = sizePx
                 )
             }
             

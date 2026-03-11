@@ -6,6 +6,7 @@ import com.frootsnoops.brickognize.data.local.entity.PartEntity
 import com.frootsnoops.brickognize.domain.model.BinLocationsBackup
 import com.frootsnoops.brickognize.domain.model.ImportSummary
 import com.frootsnoops.brickognize.domain.model.Result
+import com.frootsnoops.brickognize.util.normalizeImgUrl
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import javax.inject.Inject
@@ -78,7 +79,7 @@ class ImportBinLocationsUseCase @Inject constructor(
                         name = pe.name,
                         type = pe.type,
                         category = pe.category,
-                        imgUrl = pe.imgUrl,
+                        imgUrl = normalizeImgUrl(pe.imgUrl, pe.type, pe.id),
                         binLocationId = partBinIds.firstOrNull(),
                         createdAt = pe.createdAt,
                         updatedAt = pe.updatedAt

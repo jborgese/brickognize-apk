@@ -6,6 +6,7 @@ import com.frootsnoops.brickognize.domain.model.BinLocationExport
 import com.frootsnoops.brickognize.domain.model.BinLocationsBackup
 import com.frootsnoops.brickognize.domain.model.PartExport
 import com.frootsnoops.brickognize.domain.model.Result
+import com.frootsnoops.brickognize.util.normalizeImgUrl
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import timber.log.Timber
@@ -66,7 +67,7 @@ class ExportBinLocationsUseCase @Inject constructor(
                         name = p.name,
                         type = p.type,
                         category = p.category,
-                        imgUrl = p.imgUrl,
+                        imgUrl = normalizeImgUrl(p.imgUrl, p.type, p.id),
                         binLabel = labels.firstOrNull(),
                         binLabels = labels.ifEmpty { null },
                         createdAt = p.createdAt,
