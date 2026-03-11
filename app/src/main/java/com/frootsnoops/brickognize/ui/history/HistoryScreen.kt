@@ -130,7 +130,7 @@ fun HistoryItemCard(item: ScanHistoryItem) {
             ) {
                 val sizePx = with(androidx.compose.ui.platform.LocalDensity.current) { 80.dp.roundToPx() }
                 val request = ImageRequest.Builder(context)
-                    .data(item.topItem?.imgUrl ?: item.imagePath)
+                    .data(item.topItem?.displayImgUrl ?: item.imagePath)
                     .size(sizePx, sizePx)
                     .placeholder(R.drawable.ic_image_placeholder)
                     .error(R.drawable.ic_image_error)

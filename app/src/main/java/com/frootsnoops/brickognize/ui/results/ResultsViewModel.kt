@@ -75,7 +75,7 @@ class ResultsViewModel @Inject constructor(
         _uiState.update { it.copy(recognitionResult = result) }
         syncRecognitionResultWithPersistedBins(result)
         // Prefetch candidate images to warm caches (non-blocking)
-        prefetchCandidateImages(result.candidates.mapNotNull { it.imgUrl })
+        prefetchCandidateImages(result.candidates.map { it.displayImgUrl })
     }
     
     fun showBinPicker(partId: String) {

@@ -11,7 +11,7 @@ data class LegacySearchResultsDto(
     val listingId: String,
 
     @SerialName("bounding_box")
-    val boundingBox: BoundingBoxDto,
+    val boundingBox: BoundingBoxDto? = null,
 
     @SerialName("items")
     val items: List<LegacyCandidateItemDto>
@@ -21,16 +21,16 @@ data class LegacySearchResultsDto(
 @Serializable
 data class BoundingBoxDto(
     @SerialName("x1")
-    val x1: Double,
+    val x1: Double = 0.0,
 
     @SerialName("y1")
-    val y1: Double,
+    val y1: Double = 0.0,
 
     @SerialName("x2")
-    val x2: Double,
+    val x2: Double = 0.0,
 
     @SerialName("y2")
-    val y2: Double
+    val y2: Double = 0.0
 )
 
 @Keep

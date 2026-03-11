@@ -425,7 +425,7 @@ fun BinCard(
                             val context = LocalContext.current
                             val sizePx = with(androidx.compose.ui.platform.LocalDensity.current) { 50.dp.roundToPx() }
                             val request = ImageRequest.Builder(context)
-                                .data(part.imgUrl)
+                                .data(part.displayImgUrl)
                                 .size(sizePx, sizePx)
                                 .placeholder(R.drawable.ic_image_placeholder)
                                 .error(R.drawable.ic_image_error)
@@ -562,7 +562,7 @@ fun PartCard(part: BrickItem, onDelete: () -> Unit) {
             ) {
                 val sizePx = with(androidx.compose.ui.platform.LocalDensity.current) { 60.dp.roundToPx() }
                 val request = ImageRequest.Builder(context)
-                    .data(part.imgUrl)
+                    .data(part.displayImgUrl)
                     .size(sizePx, sizePx)
                     .placeholder(R.drawable.ic_image_placeholder)
                     .error(R.drawable.ic_image_error)

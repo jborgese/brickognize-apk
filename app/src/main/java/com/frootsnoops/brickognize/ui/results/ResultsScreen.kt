@@ -228,7 +228,7 @@ fun BrickItemCard(
             ) {
                 val sizePx = with(androidx.compose.ui.platform.LocalDensity.current) { 80.dp.roundToPx() }
                 val builder = ImageRequest.Builder(context)
-                    .data(item.imgUrl)
+                    .data(item.displayImgUrl)
                     .size(Size(sizePx, sizePx))
                     .placeholder(R.drawable.ic_image_placeholder)
                     .error(R.drawable.ic_image_error)
