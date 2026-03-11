@@ -14,12 +14,12 @@ data class BrickItem(
     val displayImgUrl: String
         get() = imgUrl ?: brickLinkImgUrl
 
-    /** BrickLink CDN URL used as a fallback when [imgUrl] is missing or stale. */
+    /** BrickLink catalog image URL used as a fallback when [imgUrl] is missing or stale. */
     val brickLinkImgUrl: String
         get() = when (type) {
-            "part" -> "https://img.bricklink.com/ItemImage/PN/0/$id.png"
-            "set"  -> "https://img.bricklink.com/ItemImage/SN/0/$id.png"
-            "fig"  -> "https://img.bricklink.com/ItemImage/MN/0/$id.png"
-            else   -> "https://img.bricklink.com/ItemImage/PN/0/$id.png"
+            "part" -> "https://www.bricklink.com/PL/$id.jpg"
+            "set"  -> "https://www.bricklink.com/SL/$id.jpg"
+            "fig"  -> "https://www.bricklink.com/ML/$id.jpg"
+            else   -> "https://www.bricklink.com/PL/$id.jpg"
         }
 }

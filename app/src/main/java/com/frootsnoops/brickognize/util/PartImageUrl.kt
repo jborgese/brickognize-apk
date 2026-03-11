@@ -6,10 +6,10 @@ package com.frootsnoops.brickognize.util
  * BrickLink CDN URLs are deterministic and stable.
  */
 fun brickLinkImgUrl(type: String, id: String): String = when (type) {
-    "part" -> "https://img.bricklink.com/ItemImage/PN/0/$id.png"
-    "set"  -> "https://img.bricklink.com/ItemImage/SN/0/$id.png"
-    "fig"  -> "https://img.bricklink.com/ItemImage/MN/0/$id.png"
-    else   -> "https://img.bricklink.com/ItemImage/PN/0/$id.png"
+    "part" -> "https://www.bricklink.com/PL/$id.jpg"
+    "set"  -> "https://www.bricklink.com/SL/$id.jpg"
+    "fig"  -> "https://www.bricklink.com/ML/$id.jpg"
+    else   -> "https://www.bricklink.com/PL/$id.jpg"
 }
 
 /**
