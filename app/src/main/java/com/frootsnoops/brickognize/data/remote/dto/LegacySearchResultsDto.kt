@@ -62,8 +62,8 @@ data class LegacyCandidateItemDto(
 @Serializable
 data class LegacyExternalSiteDto(
     @SerialName("site")
-    val site: String,
+    val site: String = "",
 
     @SerialName("url")
-    val url: String
+    val url: String = ""
 )
