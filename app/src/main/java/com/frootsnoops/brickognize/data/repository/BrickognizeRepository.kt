@@ -75,20 +75,23 @@ class BrickognizeRepository @Inject constructor(
             }
             
             // Upsert parts (preserving existing bin assignments)
+            // Use INSERT-or-UPDATE instead of REPLACE to avoid CASCADE-deleting
+            // part_bin_assignments rows (REPLACE = DELETE + INSERT, which triggers CASCADE).
             partEntities.forEach { newPart ->
-                val existingPart = partDao.getPartById(newPart.id)
-                if (existingPart != null) {
-                    Timber.d("Updating existing part: ${newPart.id}, preserving bin: ${existingPart.binLocationId}")
-                    // Preserve bin location and created time
-                    partDao.upsertPart(
-                        newPart.copy(
-                            binLocationId = existingPart.binLocationId,
-                            createdAt = existingPart.createdAt
-                        )
+                val inserted = partDao.insertPartIfAbsent(newPart)
+                if (inserted == -1L) {
+                    // Part already exists – update only non-bin fields
+                    Timber.d("Updating existing part: ${newPart.id}, preserving bin assignments")
+                    partDao.updatePartFields(
+                        id = newPart.id,
+                        name = newPart.name,
+                        type = newPart.type,
+                        category = newPart.category,
+                        imgUrl = newPart.imgUrl,
+                        updatedAt = System.currentTimeMillis()
                     )
                 } else {
-                    Timber.d("Inserting new part: ${newPart.id}")
-                    partDao.upsertPart(newPart)
+                    Timber.d("Inserted new part: ${newPart.id}")
                 }
             }
             

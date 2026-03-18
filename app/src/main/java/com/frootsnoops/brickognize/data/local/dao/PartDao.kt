@@ -77,7 +77,30 @@ interface PartDao {
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPart(part: PartEntity)
-    
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPartIfAbsent(part: PartEntity): Long
+
+    @Query(
+        """
+        UPDATE parts
+        SET name = :name,
+            type = :type,
+            category = :category,
+            img_url = :imgUrl,
+            updated_at = :updatedAt
+        WHERE id = :id
+        """
+    )
+    suspend fun updatePartFields(
+        id: String,
+        name: String,
+        type: String,
+        category: String?,
+        imgUrl: String?,
+        updatedAt: Long
+    )
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertParts(parts: List<PartEntity>)
     
